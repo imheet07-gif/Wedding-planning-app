@@ -9,8 +9,12 @@ const tabs = [
   ["/", "Dashboard"],
   ["/guests", "Guests"],
   ["/events", "Events"],
+  ["/invites", "Invites"],
   ["/vendors", "Vendors"],
   ["/budget", "Budget"],
+  ["/stay", "Stay"],
+  ["/tasks", "Tasks"],
+  ["/lists", "Lists"],
   ["/family", "Family"],
 ];
 
@@ -85,7 +89,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="mx-auto max-w-5xl overflow-x-hidden p-4">
-      <header className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b pb-3">
+      <header className="mb-4 print:hidden flex flex-wrap items-center justify-between gap-2 border-b pb-3">
         <nav className="-mx-1 flex max-w-full gap-1 overflow-x-auto px-1 pb-1">
           {tabs.map(([href, label]) => (
             <Link

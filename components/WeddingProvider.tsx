@@ -3,7 +3,8 @@ import { createContext, useCallback, useContext, useEffect, useState } from "rea
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import type {
-  BudgetCategory, Expense, Guest, Invitation, Payment, Profile, Vendor, VendorEvent, WeddingEvent,
+  BudgetCategory, Expense, Guest, Invitation, Payment, Profile, Property, Room, Stay, Task, Vendor, VendorEvent,
+  WeddingEvent,
 } from "@/lib/types";
 
 type Ctx = {
@@ -20,6 +21,11 @@ type Ctx = {
   payments: Payment[];
   budget: BudgetCategory[];
   expenses: Expense[];
+  properties: Property[];
+  rooms: Room[];
+  stays: Stay[];
+  tasks: Task[];
+  settings: Record<string, string>;
   error: string | null;
   refresh: () => Promise<void>;
 };
@@ -44,11 +50,16 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [budget, setBudget] = useState<BudgetCategory[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [rooms, setRooms] = useState<Room[]>([]);
+  const [stays, setStays] = useState<Stay[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [settings, setSettings] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     const db = supabase();
-    const [e, g, i, p, v, ve, pay, b, x] = await Promise.all([
+    const [e, g, i, p, v, ve, pay, b, x, pr, rm, st, tk, se] = await Promise.all([
       db.from("events").select("*").order("sort_order"),
       db.from("guests").select("*").order("name"),
       db.from("invitations").select("*"),
@@ -58,8 +69,13 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
       db.from("payments").select("*").order("due_on"),
       db.from("budget_categories").select("*"),
       db.from("expenses").select("*").order("created_at", { ascending: false }),
+      db.from("properties").select("*").order("name"),
+      db.from("rooms").select("*").order("name"),
+      db.from("stays").select("*"),
+      db.from("tasks").select("*").order("created_at"),
+      db.from("app_settings").select("*"),
     ]);
-    const failed = [e, g, i, p, v, ve, pay, b, x].find((r) => r.error);
+    const failed = [e, g, i, p, v, ve, pay, b, x, pr, rm, st, tk, se].find((r) => r.error);
     setError(failed?.error?.message ?? null);
     setEvents((e.data as WeddingEvent[]) ?? []);
     setGuests((g.data as Guest[]) ?? []);
@@ -70,6 +86,11 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
     setPayments((pay.data as Payment[]) ?? []);
     setBudget((b.data as BudgetCategory[]) ?? []);
     setExpenses((x.data as Expense[]) ?? []);
+    setProperties((pr.data as Property[]) ?? []);
+    setRooms(((rm.data as Room[]) ?? []).sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true })));
+    setStays((st.data as Stay[]) ?? []);
+    setTasks((tk.data as Task[]) ?? []);
+    setSettings(Object.fromEntries(((se.data as { key: string; value: string }[]) ?? []).map((r) => [r.key, r.value])));
   }, []);
 
   useEffect(() => {
@@ -94,7 +115,7 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <WeddingContext.Provider
-      value={{ session, loading, me, canEdit: me?.role === "editor", events, guests, invitations, profiles, vendors, vendorEvents, payments, budget, expenses, error, refresh }}
+      value={{ session, loading, me, canEdit: me?.role === "editor", events, guests, invitations, profiles, vendors, vendorEvents, payments, budget, expenses, properties, rooms, stays, tasks, settings, error, refresh }}
     >
       {children}
     </WeddingContext.Provider>
