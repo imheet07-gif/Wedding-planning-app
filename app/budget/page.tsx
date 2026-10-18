@@ -63,25 +63,25 @@ export default function BudgetPage() {
       {err && <p className="text-sm text-red-600">{err}</p>}
 
       <div className="overflow-x-auto rounded-lg border bg-white">
-        <table className="w-full text-sm">
+        <table className="w-full text-xs sm:text-sm">
           <thead className="bg-gray-50 text-left text-gray-500">
-            <tr><th className="p-2">Category</th><th className="p-2">Planned ₹</th><th className="p-2">Committed</th><th className="p-2">Paid</th></tr>
+            <tr><th className="p-1.5 sm:p-2">Category</th><th className="p-1.5 sm:p-2">Planned ₹</th><th className="p-1.5 sm:p-2">Committed</th><th className="p-1.5 sm:p-2">Paid</th></tr>
           </thead>
           <tbody>
             {rows.map((r) => (
               <tr key={r.category} className="border-t">
-                <td className="p-2">{r.category}</td>
-                <td className="p-2">
+                <td className="p-1.5 sm:p-2">{r.category}</td>
+                <td className="p-1.5 sm:p-2">
                   {canEdit ? (
-                    <input type="number" min={0} defaultValue={r.planned || ""} className="w-28 rounded border p-1"
+                    <input type="number" min={0} defaultValue={r.planned || ""} className="w-20 rounded border p-1 sm:w-28"
                       onBlur={(e) => (+e.target.value || 0) !== r.planned &&
                         run(supabase().from("budget_categories").upsert({ category: r.category, planned: +e.target.value || 0 }))} />
                   ) : inr(r.planned)}
                 </td>
-                <td className={`p-2 ${r.planned && r.committed > r.planned ? "font-medium text-red-600" : ""}`}>
+                <td className={`p-1.5 sm:p-2 ${r.planned && r.committed > r.planned ? "font-medium text-red-600" : ""}`}>
                   {inr(r.committed)}{r.planned && r.committed > r.planned ? " (over)" : ""}
                 </td>
-                <td className="p-2">{inr(r.paid)}</td>
+                <td className="p-1.5 sm:p-2">{inr(r.paid)}</td>
               </tr>
             ))}
           </tbody>
