@@ -9,6 +9,8 @@ const tabs = [
   ["/", "Dashboard"],
   ["/guests", "Guests"],
   ["/events", "Events"],
+  ["/vendors", "Vendors"],
+  ["/budget", "Budget"],
   ["/family", "Family"],
 ];
 

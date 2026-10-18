@@ -2,7 +2,9 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
-import type { Guest, Invitation, Profile, WeddingEvent } from "@/lib/types";
+import type {
+  BudgetCategory, Expense, Guest, Invitation, Payment, Profile, Vendor, VendorEvent, WeddingEvent,
+} from "@/lib/types";
 
 type Ctx = {
   session: Session | null;
@@ -13,6 +15,11 @@ type Ctx = {
   guests: Guest[];
   invitations: Invitation[];
   profiles: Profile[];
+  vendors: Vendor[];
+  vendorEvents: VendorEvent[];
+  payments: Payment[];
+  budget: BudgetCategory[];
+  expenses: Expense[];
   error: string | null;
   refresh: () => Promise<void>;
 };
@@ -32,22 +39,37 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
   const [guests, setGuests] = useState<Guest[]>([]);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [vendorEvents, setVendorEvents] = useState<VendorEvent[]>([]);
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [budget, setBudget] = useState<BudgetCategory[]>([]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     const db = supabase();
-    const [e, g, i, p] = await Promise.all([
+    const [e, g, i, p, v, ve, pay, b, x] = await Promise.all([
       db.from("events").select("*").order("sort_order"),
       db.from("guests").select("*").order("name"),
       db.from("invitations").select("*"),
       db.from("profiles").select("*").order("email"),
+      db.from("vendors").select("*").order("name"),
+      db.from("vendor_events").select("*"),
+      db.from("payments").select("*").order("due_on"),
+      db.from("budget_categories").select("*"),
+      db.from("expenses").select("*").order("created_at", { ascending: false }),
     ]);
-    const failed = [e, g, i, p].find((r) => r.error);
+    const failed = [e, g, i, p, v, ve, pay, b, x].find((r) => r.error);
     setError(failed?.error?.message ?? null);
     setEvents((e.data as WeddingEvent[]) ?? []);
     setGuests((g.data as Guest[]) ?? []);
     setInvitations((i.data as Invitation[]) ?? []);
     setProfiles((p.data as Profile[]) ?? []);
+    setVendors((v.data as Vendor[]) ?? []);
+    setVendorEvents((ve.data as VendorEvent[]) ?? []);
+    setPayments((pay.data as Payment[]) ?? []);
+    setBudget((b.data as BudgetCategory[]) ?? []);
+    setExpenses((x.data as Expense[]) ?? []);
   }, []);
 
   useEffect(() => {
@@ -72,7 +94,7 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <WeddingContext.Provider
-      value={{ session, loading, me, canEdit: me?.role === "editor", events, guests, invitations, profiles, error, refresh }}
+      value={{ session, loading, me, canEdit: me?.role === "editor", events, guests, invitations, profiles, vendors, vendorEvents, payments, budget, expenses, error, refresh }}
     >
       {children}
     </WeddingContext.Provider>
