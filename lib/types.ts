@@ -1,4 +1,4 @@
-export type Role = "editor" | "viewer";
+export type Role = "editor" | "viewer" | "pending";
 export type Side = "bride" | "groom" | "both";
 export type Rsvp = "pending" | "yes" | "no";
 
