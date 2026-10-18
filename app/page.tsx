@@ -1,9 +1,10 @@
 "use client";
 import Link from "next/link";
 import { useWedding } from "@/components/WeddingProvider";
+import { inr } from "@/lib/constants";
 
 export default function Dashboard() {
-  const { events, guests, invitations } = useWedding();
+  const { events, guests, invitations, vendors, payments } = useWedding();
   const headcount = new Map(guests.map((g) => [g.id, g.headcount]));
 
   const rows = events.map((ev) => {
@@ -18,6 +19,12 @@ export default function Dashboard() {
     };
   });
   const totalPeople = guests.reduce((n, g) => n + g.headcount, 0);
+
+  const vendorName = new Map(vendors.map((v) => [v.id, v.name]));
+  const upcoming = payments
+    .filter((p) => !p.paid_on && p.due_on)
+    .sort((a, b) => a.due_on!.localeCompare(b.due_on!))
+    .slice(0, 5);
 
   return (
     <div className="space-y-4">
@@ -39,6 +46,17 @@ export default function Dashboard() {
           </Link>
         ))}
       </div>
+      {upcoming.length > 0 && (
+        <section className="rounded-lg border bg-white p-4">
+          <h2 className="mb-2 font-semibold">Next payments due</h2>
+          {upcoming.map((p) => (
+            <div key={p.id} className="flex justify-between border-t py-1.5 text-sm first:border-t-0">
+              <span>{vendorName.get(p.vendor_id)}{p.label ? ` · ${p.label}` : ""}</span>
+              <span>{inr(p.amount)} · {p.due_on}</span>
+            </div>
+          ))}
+        </section>
+      )}
     </div>
   );
 }
