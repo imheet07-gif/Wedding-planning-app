@@ -19,6 +19,14 @@ function Login() {
   const [sent, setSent] = useState(false);
   const [err, setErr] = useState("");
 
+  async function google() {
+    const { error } = await supabase().auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: window.location.origin },
+    });
+    if (error) setErr(error.message);
+  }
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     const { error } = await supabase().auth.signInWithOtp({
@@ -32,11 +40,14 @@ function Login() {
   return (
     <main className="mx-auto mt-24 max-w-sm p-6">
       <h1 className="mb-2 text-2xl font-semibold">Wedding Planner</h1>
+      <button onClick={google} className="mb-4 w-full rounded border bg-white p-2 font-medium hover:bg-gray-50">
+        Sign in with Google
+      </button>
       {sent ? (
         <p className="text-gray-600">Check your email for a sign-in link.</p>
       ) : (
         <form onSubmit={submit} className="space-y-3">
-          <p className="text-gray-600">Enter your email and we will send you a sign-in link.</p>
+          <p className="text-gray-600">Or enter your email and we will send you a sign-in link.</p>
           <input
             type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com" className="w-full rounded border p-2"
@@ -55,6 +66,19 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
   if (loading) return <p className="p-6 text-gray-500">Loading…</p>;
   if (!session) return <Login />;
+
+  if (me?.role === "pending") {
+    return (
+      <main className="mx-auto mt-24 max-w-sm space-y-3 p-6">
+        <h1 className="text-2xl font-semibold">Waiting for approval</h1>
+        <p className="text-gray-600">
+          You are signed in as {session.user.email}. An editor needs to approve you before you can see the
+          wedding plans. Ask them to open the Family page and approve you.
+        </p>
+        <button onClick={() => supabase().auth.signOut()} className="underline">Sign out</button>
+      </main>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-5xl overflow-x-hidden p-4">
