@@ -88,32 +88,33 @@ function VendorCard({ v, run }: { v: Vendor; run: (p: PromiseLike<{ error: { mes
 
           <div>
             <span className="text-gray-500">Payments</span>
-            <table className="mt-1 w-full">
-              <tbody>
-                {mine.map((p) => (
-                  <tr key={p.id} className="border-t">
-                    <td className="py-1.5">{p.label || "Payment"}</td>
-                    <td className="py-1.5">{inr(p.amount)}</td>
-                    <td className="py-1.5 text-gray-500">{p.paid_on ? `paid ${p.paid_on}` : p.due_on ? `due ${p.due_on}` : "no date"}</td>
-                    {canEdit && (
-                      <td className="py-1.5 text-right">
-                        <button className="mr-3 text-rose-600"
-                          onClick={() => run(supabase().from("payments").update({ paid_on: p.paid_on ? null : today }).eq("id", p.id))}>
-                          {p.paid_on ? "Undo" : "Mark paid"}
-                        </button>
-                        <button className="text-red-600" onClick={() => run(supabase().from("payments").delete().eq("id", p.id))}>Delete</button>
-                      </td>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div className="mt-1">
+              {mine.map((p) => (
+                <div key={p.id} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-t py-2">
+                  <span>
+                    {p.label || "Payment"} · {inr(p.amount)}
+                    <span className="block text-xs text-gray-500">
+                      {p.paid_on ? `paid ${p.paid_on}` : p.due_on ? `due ${p.due_on}` : "no date"}
+                    </span>
+                  </span>
+                  {canEdit && (
+                    <span>
+                      <button className="mr-3 text-rose-600"
+                        onClick={() => run(supabase().from("payments").update({ paid_on: p.paid_on ? null : today }).eq("id", p.id))}>
+                        {p.paid_on ? "Undo" : "Mark paid"}
+                      </button>
+                      <button className="text-red-600" onClick={() => run(supabase().from("payments").delete().eq("id", p.id))}>Delete</button>
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
             {canEdit && (
-              <form onSubmit={addPayment} className="mt-2 flex flex-wrap gap-2">
-                <input required type="number" min={1} placeholder="Amount" value={pay.amount} onChange={(e) => setPay({ ...pay, amount: e.target.value })} className="w-28 rounded border p-2" />
-                <input placeholder="Label (advance…)" value={pay.label} onChange={(e) => setPay({ ...pay, label: e.target.value })} className="min-w-0 flex-1 rounded border p-2" />
-                <input type="date" value={pay.due_on} onChange={(e) => setPay({ ...pay, due_on: e.target.value })} className="rounded border p-2" />
-                <button className="rounded bg-rose-600 px-3 py-2 text-white">Add</button>
+              <form onSubmit={addPayment} className="mt-2 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+                <input required type="number" min={1} placeholder="Amount ₹" value={pay.amount} onChange={(e) => setPay({ ...pay, amount: e.target.value })} className="min-w-0 rounded border p-2 sm:w-28" />
+                <input type="date" aria-label="Due date" value={pay.due_on} onChange={(e) => setPay({ ...pay, due_on: e.target.value })} className="min-w-0 rounded border p-2" />
+                <input placeholder="Label (advance, final…)" value={pay.label} onChange={(e) => setPay({ ...pay, label: e.target.value })} className="col-span-2 min-w-0 rounded border p-2 sm:flex-1" />
+                <button className="col-span-2 rounded bg-rose-600 px-3 py-2 text-white sm:col-span-1">Add payment</button>
               </form>
             )}
           </div>

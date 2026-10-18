@@ -57,13 +57,13 @@ export function Shell({ children }: { children: React.ReactNode }) {
   if (!session) return <Login />;
 
   return (
-    <div className="mx-auto max-w-5xl p-4">
+    <div className="mx-auto max-w-5xl overflow-x-hidden p-4">
       <header className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b pb-3">
-        <nav className="flex gap-1">
+        <nav className="-mx-1 flex max-w-full gap-1 overflow-x-auto px-1 pb-1">
           {tabs.map(([href, label]) => (
             <Link
               key={href} href={href}
-              className={`rounded px-3 py-1.5 text-sm ${path === href ? "bg-rose-600 text-white" : "hover:bg-gray-100"}`}
+              className={`shrink-0 rounded px-3 py-1.5 text-sm ${path === href ? "bg-rose-600 text-white" : "hover:bg-gray-100"}`}
             >
               {label}
             </Link>
