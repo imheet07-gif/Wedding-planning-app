@@ -2,11 +2,13 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useWedding } from "@/components/WeddingProvider";
+import { useToast } from "@/components/Toast";
 import { DEFAULT_INVITE, fillTemplate, formatDate, normalizePhone, waLink } from "@/lib/whatsapp";
 import type { Guest, WeddingEvent } from "@/lib/types";
 
 function InviteSender({ ev }: { ev: WeddingEvent }) {
   const { guests, invitations, settings, canEdit, refresh } = useWedding();
+  const notify = useToast();
   const [template, setTemplate] = useState(ev.invite_text ?? DEFAULT_INVITE);
   const [onlyUnsent, setOnlyUnsent] = useState(false);
   const [err, setErr] = useState("");
@@ -16,6 +18,7 @@ function InviteSender({ ev }: { ev: WeddingEvent }) {
   async function run(p: PromiseLike<{ error: { message: string } | null }>) {
     const { error } = await p;
     setErr(error?.message ?? "");
+    notify(error ? error.message : "Saved", error ? "error" : "ok");
     await refresh();
   }
 
@@ -78,21 +81,21 @@ function InviteSender({ ev }: { ev: WeddingEvent }) {
 
   return (
     <div className="space-y-4">
-      <section className="space-y-2 rounded-lg border bg-white p-3">
+      <section className="space-y-2 card p-3">
         <h2 className="font-semibold">Message</h2>
         <p className="text-sm text-gray-500">
           Use {"{name}"}, {"{event}"}, {"{date}"}, {"{time}"} and {"{venue}"}. They are filled in for each guest.
         </p>
-        <textarea rows={6} disabled={!canEdit} value={template} onChange={(e) => setTemplate(e.target.value)} className="w-full rounded border p-2" />
+        <textarea rows={6} disabled={!canEdit} value={template} onChange={(e) => setTemplate(e.target.value)} className="w-full rounded-lg border p-2" />
         {canEdit && (
-          <button onClick={() => run(supabase().from("events").update({ invite_text: template }).eq("id", ev.id))} className="rounded bg-rose-600 px-3 py-2 text-white">
+          <button onClick={() => run(supabase().from("events").update({ invite_text: template }).eq("id", ev.id))} className="rounded-lg bg-rose-600 px-3 py-2 text-white">
             Save message
           </button>
         )}
-        <div className="whitespace-pre-wrap rounded bg-green-50 p-3 text-sm">{message(sample)}</div>
+        <div className="whitespace-pre-wrap rounded-lg bg-green-50 p-3 text-sm">{message(sample)}</div>
       </section>
 
-      <section className="space-y-2 rounded-lg border bg-white p-3 text-sm">
+      <section className="space-y-2 card p-3 text-sm">
         <h2 className="font-semibold">Invite image or PDF</h2>
         {media ? (
           <p>
@@ -121,7 +124,7 @@ function InviteSender({ ev }: { ev: WeddingEvent }) {
             <input type="checkbox" checked={onlyUnsent} onChange={(e) => setOnlyUnsent(e.target.checked)} /> Not sent yet
           </label>
         </div>
-        <div className="rounded-lg border bg-white">
+        <div className="card">
           {rows.map(({ inv, g }) => {
             const phone = normalizePhone(g.phone, cc);
             return (
@@ -134,10 +137,10 @@ function InviteSender({ ev }: { ev: WeddingEvent }) {
                   </span>
                 </span>
                 <span className="flex flex-wrap items-center gap-2">
-                  <button onClick={() => send(g)} disabled={!phone} className="rounded bg-green-600 px-3 py-1.5 text-white disabled:opacity-40">
+                  <button onClick={() => send(g)} disabled={!phone} className="rounded-lg bg-green-600 px-3 py-1.5 text-white disabled:opacity-40">
                     {inv.sent_at ? "Send again" : "Send on WhatsApp"}
                   </button>
-                  {media && <button onClick={() => shareFile(g)} className="rounded border px-3 py-1.5">Share file</button>}
+                  {media && <button onClick={() => shareFile(g)} className="rounded-lg border px-3 py-1.5">Share file</button>}
                   {canEdit && inv.sent_at && <button onClick={() => setSent(g.id, false)} className="text-gray-500 underline">Undo</button>}
                   {canEdit && !inv.sent_at && <button onClick={() => setSent(g.id, true)} className="text-gray-500 underline">Mark sent</button>}
                 </span>
@@ -163,13 +166,13 @@ export default function InvitesPage() {
         The app cannot tell whether you actually sent it, so check before moving on.
       </p>
       <div className="flex flex-wrap items-center gap-3">
-        <select value={eventId} onChange={(e) => setEventId(e.target.value)} className="rounded border bg-white p-2">
+        <select value={eventId} onChange={(e) => setEventId(e.target.value)} className="rounded-lg border bg-white p-2">
           <option value="">Choose an event…</option>
           {events.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
         </select>
         <label className="text-sm text-gray-600">
           Default country code +
-          <input disabled={!canEdit} defaultValue={settings.country_code ?? "91"} className="ml-1 w-14 rounded border p-1"
+          <input disabled={!canEdit} defaultValue={settings.country_code ?? "91"} className="ml-1 w-14 rounded-lg border p-1"
             onBlur={async (e) => {
               const v = e.target.value.replace(/\D/g, "");
               if (v && v !== settings.country_code) {

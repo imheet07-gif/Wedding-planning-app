@@ -80,20 +80,20 @@ export default function ListsPage() {
 
   return (
     <div className="space-y-4">
-      <div className="space-y-2 rounded-lg border bg-white p-3 print:hidden">
+      <div className="space-y-2 card p-3 print:hidden">
         <div className="flex flex-wrap gap-2">
-          <select value={kind} onChange={(e) => setKind(e.target.value as Kind)} className="rounded border p-2">
+          <select value={kind} onChange={(e) => setKind(e.target.value as Kind)} className="rounded-lg border p-2">
             <option value="guests">Guest list</option>
             <option value="stay">Accommodation</option>
             <option value="vendors">Vendor contacts</option>
           </select>
           {kind === "guests" && (
             <>
-              <select value={eventId} onChange={(e) => setEventId(e.target.value)} className="rounded border p-2">
+              <select value={eventId} onChange={(e) => setEventId(e.target.value)} className="rounded-lg border p-2">
                 <option value="">All guests</option>
                 {events.map((ev) => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
               </select>
-              <select value={side} onChange={(e) => setSide(e.target.value)} className="rounded border p-2">
+              <select value={side} onChange={(e) => setSide(e.target.value)} className="rounded-lg border p-2">
                 <option value="">Both sides</option>
                 <option value="bride">Bride</option>
                 <option value="groom">Groom</option>
@@ -111,14 +111,14 @@ export default function ListsPage() {
           </div>
         )}
         <div className="flex flex-wrap gap-2">
-          <button onClick={() => window.print()} className="rounded bg-rose-600 px-3 py-2 text-white">Print / save as PDF</button>
-          <button onClick={copy} className="rounded border px-3 py-2">{copied ? "Copied" : "Copy as text"}</button>
-          <button onClick={download} className="rounded border px-3 py-2">Download CSV</button>
+          <button onClick={() => window.print()} className="rounded-lg bg-rose-600 px-3 py-2 text-white">Print / save as PDF</button>
+          <button onClick={copy} className="rounded-lg border px-3 py-2">{copied ? "Copied" : "Copy as text"}</button>
+          <button onClick={download} className="rounded-lg border px-3 py-2">Download CSV</button>
         </div>
       </div>
 
       <h1 className="text-xl font-semibold">{title}</h1>
-      <div className="overflow-x-auto rounded-lg border bg-white print:border-0">
+      <div className="overflow-x-auto card print:border-0 print:shadow-none">
         <table className="w-full text-sm">
           <thead className="bg-gray-50 text-left text-gray-500 print:bg-white">
             <tr>{head.map((h) => <th key={h} className="p-2">{h}</th>)}</tr>

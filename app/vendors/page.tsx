@@ -2,6 +2,9 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useWedding } from "@/components/WeddingProvider";
+import { useToast } from "@/components/Toast";
+import { EmptyState } from "@/components/ui";
+import { Store } from "lucide-react";
 import { CATEGORIES, inr } from "@/lib/constants";
 import type { Vendor, VendorStatus } from "@/lib/types";
 
@@ -37,7 +40,7 @@ function VendorCard({ v, run }: { v: Vendor; run: (p: PromiseLike<{ error: { mes
   }
 
   return (
-    <div className="rounded-lg border bg-white p-3">
+    <div className="card p-3">
       <button onClick={() => setOpen(!open)} className="flex w-full flex-wrap items-center justify-between gap-2 text-left">
         <span>
           <span className="font-medium">{v.name}</span>
@@ -50,27 +53,27 @@ function VendorCard({ v, run }: { v: Vendor; run: (p: PromiseLike<{ error: { mes
 
       {open && (
         <div className="mt-3 space-y-3 text-sm">
-          <div className="grid gap-2 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
             <label>
               <span className="text-gray-500">Status</span>
-              <select disabled={!canEdit} value={v.status} onChange={(e) => patch({ status: e.target.value as VendorStatus })} className="mt-1 w-full rounded border p-2">
+              <select disabled={!canEdit} value={v.status} onChange={(e) => patch({ status: e.target.value as VendorStatus })} className="mt-1 w-full rounded-lg border p-2">
                 {Object.entries(statusLabel).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
               </select>
             </label>
             <label>
               <span className="text-gray-500">Quote (₹)</span>
-              <input type="number" min={0} disabled={!canEdit} defaultValue={v.quote} className="mt-1 w-full rounded border p-2"
+              <input type="number" min={0} disabled={!canEdit} defaultValue={v.quote} className="mt-1 w-full rounded-lg border p-2"
                 onBlur={(e) => +e.target.value !== v.quote && +e.target.value >= 0 && patch({ quote: +e.target.value })} />
             </label>
             <label>
               <span className="text-gray-500">Phone</span>
-              <input disabled={!canEdit} defaultValue={v.phone ?? ""} className="mt-1 w-full rounded border p-2"
+              <input disabled={!canEdit} defaultValue={v.phone ?? ""} className="mt-1 w-full rounded-lg border p-2"
                 onBlur={(e) => e.target.value !== (v.phone ?? "") && patch({ phone: e.target.value.trim() || null })} />
             </label>
           </div>
           <label className="block">
             <span className="text-gray-500">Notes</span>
-            <textarea disabled={!canEdit} defaultValue={v.notes ?? ""} rows={2} className="mt-1 w-full rounded border p-2"
+            <textarea disabled={!canEdit} defaultValue={v.notes ?? ""} rows={2} className="mt-1 w-full rounded-lg border p-2"
               onBlur={(e) => e.target.value !== (v.notes ?? "") && patch({ notes: e.target.value.trim() || null })} />
           </label>
 
@@ -111,10 +114,10 @@ function VendorCard({ v, run }: { v: Vendor; run: (p: PromiseLike<{ error: { mes
             </div>
             {canEdit && (
               <form onSubmit={addPayment} className="mt-2 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-                <input required type="number" min={1} placeholder="Amount ₹" value={pay.amount} onChange={(e) => setPay({ ...pay, amount: e.target.value })} className="min-w-0 rounded border p-2 sm:w-28" />
-                <input type="date" aria-label="Due date" value={pay.due_on} onChange={(e) => setPay({ ...pay, due_on: e.target.value })} className="min-w-0 rounded border p-2" />
-                <input placeholder="Label (advance, final…)" value={pay.label} onChange={(e) => setPay({ ...pay, label: e.target.value })} className="col-span-2 min-w-0 rounded border p-2 sm:flex-1" />
-                <button className="col-span-2 rounded bg-rose-600 px-3 py-2 text-white sm:col-span-1">Add payment</button>
+                <input required type="number" min={1} placeholder="Amount ₹" value={pay.amount} onChange={(e) => setPay({ ...pay, amount: e.target.value })} className="min-w-0 rounded-lg border p-2 sm:w-28" />
+                <input type="date" aria-label="Due date" value={pay.due_on} onChange={(e) => setPay({ ...pay, due_on: e.target.value })} className="min-w-0 rounded-lg border p-2" />
+                <input placeholder="Label (advance, final…)" value={pay.label} onChange={(e) => setPay({ ...pay, label: e.target.value })} className="col-span-2 min-w-0 rounded-lg border p-2 sm:flex-1" />
+                <button className="col-span-2 rounded-lg bg-rose-600 px-3 py-2 text-white sm:col-span-1">Add payment</button>
               </form>
             )}
           </div>
@@ -132,6 +135,7 @@ function VendorCard({ v, run }: { v: Vendor; run: (p: PromiseLike<{ error: { mes
 
 export default function VendorsPage() {
   const { vendors, payments, canEdit, refresh } = useWedding();
+  const notify = useToast();
   const [err, setErr] = useState("");
   const [form, setForm] = useState({ name: "", category: CATEGORIES[0], phone: "", quote: "", status: "shortlisted" as VendorStatus });
   const [filter, setFilter] = useState("");
@@ -139,6 +143,7 @@ export default function VendorsPage() {
   async function run(p: PromiseLike<{ error: { message: string } | null }>) {
     const { error } = await p;
     setErr(error?.message ?? "");
+    notify(error ? error.message : "Saved", error ? "error" : "ok");
     await refresh();
   }
 
@@ -165,20 +170,20 @@ export default function VendorsPage() {
       </p>
 
       {canEdit && (
-        <form onSubmit={add} className="grid gap-2 rounded-lg border bg-white p-4 sm:grid-cols-6">
-          <input required placeholder="Vendor name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="rounded border p-2 sm:col-span-2" />
-          <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="rounded border p-2">
+        <form onSubmit={add} className="grid grid-cols-1 gap-2 card p-4 sm:grid-cols-6">
+          <input required placeholder="Vendor name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="rounded-lg border p-2 sm:col-span-2" />
+          <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="rounded-lg border p-2">
             {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
           </select>
-          <input placeholder="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="rounded border p-2" />
-          <input type="number" min={0} placeholder="Quote ₹" value={form.quote} onChange={(e) => setForm({ ...form, quote: e.target.value })} className="rounded border p-2" />
-          <button className="rounded bg-rose-600 p-2 text-white">Add vendor</button>
+          <input placeholder="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="rounded-lg border p-2" />
+          <input type="number" min={0} placeholder="Quote ₹" value={form.quote} onChange={(e) => setForm({ ...form, quote: e.target.value })} className="rounded-lg border p-2" />
+          <button className="rounded-lg bg-rose-600 p-2 text-white">Add vendor</button>
         </form>
       )}
 
       {err && <p className="text-sm text-red-600">{err}</p>}
 
-      <select value={filter} onChange={(e) => setFilter(e.target.value)} className="rounded border bg-white p-2">
+      <select value={filter} onChange={(e) => setFilter(e.target.value)} className="rounded-lg border bg-white p-2">
         <option value="">All categories</option>
         {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
       </select>
@@ -189,7 +194,9 @@ export default function VendorsPage() {
           {shown.filter((v) => v.category === c).map((v) => <VendorCard key={v.id} v={v} run={run} />)}
         </section>
       ))}
-      {!shown.length && <p className="text-gray-500">No vendors yet.</p>}
+      {!shown.length && (
+        <div className="card"><EmptyState icon={<Store size={22} />} title="No vendors yet" hint="Add the decorator, photographer, caterer and everyone else you are considering, then track quotes and payments." /></div>
+      )}
     </div>
   );
 }

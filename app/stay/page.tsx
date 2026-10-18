@@ -2,6 +2,9 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useWedding } from "@/components/WeddingProvider";
+import { useToast } from "@/components/Toast";
+import { EmptyState } from "@/components/ui";
+import { BedDouble } from "lucide-react";
 import type { Room, Stay } from "@/lib/types";
 
 type Run = (p: PromiseLike<{ error: { message: string } | null }>) => Promise<void>;
@@ -11,6 +14,7 @@ const overlap = (a: Stay, b: Stay) =>
 
 export default function StayPage() {
   const { guests, events, invitations, properties, rooms, stays, canEdit, refresh } = useWedding();
+  const notify = useToast();
   const [err, setErr] = useState("");
   const [pick, setPick] = useState("");
   const [pickEvent, setPickEvent] = useState("");
@@ -21,6 +25,7 @@ export default function StayPage() {
   const run: Run = async (p) => {
     const { error } = await p;
     setErr(error?.message ?? "");
+    notify(error ? error.message : "Saved", error ? "error" : "ok");
     await refresh();
   };
 
@@ -83,7 +88,7 @@ export default function StayPage() {
           ["Not placed", `${totalPeople - placed} people`],
           ["Beds in rooms", String(capacity)],
         ].map(([label, v]) => (
-          <div key={label} className="rounded-lg border bg-white p-3">
+          <div key={label} className="card p-3">
             <p className="text-sm text-gray-500">{label}</p>
             <p className="text-xl font-semibold">{v}</p>
           </div>
@@ -95,26 +100,26 @@ export default function StayPage() {
       <section className="space-y-2">
         <h2 className="font-semibold">Who needs a place to stay</h2>
         {canEdit && (
-          <div className="space-y-2 rounded-lg border bg-white p-3">
+          <div className="space-y-2 card p-3">
             <div className="flex flex-wrap gap-2">
-              <select value={pick} onChange={(e) => setPick(e.target.value)} className="min-w-0 flex-1 rounded border p-2">
+              <select value={pick} onChange={(e) => setPick(e.target.value)} className="min-w-0 flex-1 rounded-lg border p-2">
                 <option value="">Add a guest…</option>
                 {needing.map((g) => <option key={g.id} value={g.id}>{g.name} ({g.headcount})</option>)}
               </select>
-              <button onClick={addGuest} className="rounded bg-rose-600 px-3 py-2 text-white">Add</button>
+              <button onClick={addGuest} className="rounded-lg bg-rose-600 px-3 py-2 text-white">Add</button>
             </div>
             <div className="flex flex-wrap gap-2">
-              <select value={pickEvent} onChange={(e) => setPickEvent(e.target.value)} className="min-w-0 flex-1 rounded border p-2">
+              <select value={pickEvent} onChange={(e) => setPickEvent(e.target.value)} className="min-w-0 flex-1 rounded-lg border p-2">
                 <option value="">Add everyone invited to…</option>
                 {events.map((ev) => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
               </select>
-              <button onClick={addEventGuests} className="rounded border px-3 py-2">Add all</button>
+              <button onClick={addEventGuests} className="rounded-lg border px-3 py-2">Add all</button>
             </div>
             <div className="flex flex-wrap items-center gap-2 text-sm">
               <span className="text-gray-500">Set dates for everyone without dates:</span>
-              <input type="date" value={bulkDates.check_in} onChange={(e) => setBulkDates({ ...bulkDates, check_in: e.target.value })} className="rounded border p-1" />
-              <input type="date" value={bulkDates.check_out} onChange={(e) => setBulkDates({ ...bulkDates, check_out: e.target.value })} className="rounded border p-1" />
-              <button onClick={applyDates} className="rounded border px-3 py-1">Apply</button>
+              <input type="date" value={bulkDates.check_in} onChange={(e) => setBulkDates({ ...bulkDates, check_in: e.target.value })} className="rounded-lg border p-1" />
+              <input type="date" value={bulkDates.check_out} onChange={(e) => setBulkDates({ ...bulkDates, check_out: e.target.value })} className="rounded-lg border p-1" />
+              <button onClick={applyDates} className="rounded-lg border px-3 py-1">Apply</button>
             </div>
           </div>
         )}
@@ -123,30 +128,30 @@ export default function StayPage() {
           const g = guestById.get(s.guest_id);
           const over = s.room_id ? load(s) > (roomById.get(s.room_id)?.capacity ?? 0) : false;
           return (
-            <div key={s.id} className="rounded-lg border bg-white p-3 text-sm">
+            <div key={s.id} className="card p-3 text-sm">
               <div className="flex items-center justify-between">
                 <span className="font-medium">{g?.name}</span>
                 {canEdit && <button className="text-red-600" onClick={() => run(supabase().from("stays").delete().eq("id", s.id))}>Remove</button>}
               </div>
-              <div className="mt-2 grid gap-2 sm:grid-cols-5">
+              <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-5">
                 <label>
                   <span className="text-gray-500">People</span>
-                  <input type="number" min={1} disabled={!canEdit} defaultValue={s.people} className="mt-1 w-full rounded border p-2"
+                  <input type="number" min={1} disabled={!canEdit} defaultValue={s.people} className="mt-1 w-full rounded-lg border p-2"
                     onBlur={(e) => +e.target.value >= 1 && +e.target.value !== s.people && patch(s.id, { people: +e.target.value })} />
                 </label>
                 <label>
                   <span className="text-gray-500">Check in</span>
-                  <input type="date" disabled={!canEdit} defaultValue={s.check_in ?? ""} className="mt-1 w-full rounded border p-2"
+                  <input type="date" disabled={!canEdit} defaultValue={s.check_in ?? ""} className="mt-1 w-full rounded-lg border p-2"
                     onBlur={(e) => e.target.value !== (s.check_in ?? "") && patch(s.id, { check_in: e.target.value || null })} />
                 </label>
                 <label>
                   <span className="text-gray-500">Check out</span>
-                  <input type="date" disabled={!canEdit} defaultValue={s.check_out ?? ""} className="mt-1 w-full rounded border p-2"
+                  <input type="date" disabled={!canEdit} defaultValue={s.check_out ?? ""} className="mt-1 w-full rounded-lg border p-2"
                     onBlur={(e) => e.target.value !== (s.check_out ?? "") && patch(s.id, { check_out: e.target.value || null })} />
                 </label>
                 <label className="sm:col-span-2">
                   <span className="text-gray-500">Room</span>
-                  <select disabled={!canEdit} value={s.room_id ?? ""} onChange={(e) => patch(s.id, { room_id: e.target.value || null })} className="mt-1 w-full rounded border p-2">
+                  <select disabled={!canEdit} value={s.room_id ?? ""} onChange={(e) => patch(s.id, { room_id: e.target.value || null })} className="mt-1 w-full rounded-lg border p-2">
                     <option value="">Not placed yet</option>
                     {properties.map((p) => (
                       <optgroup key={p.id} label={p.name}>
@@ -160,7 +165,7 @@ export default function StayPage() {
             </div>
           );
         })}
-        {!stays.length && <p className="text-sm text-gray-500">Nobody added yet.</p>}
+        {!stays.length && <div className="card"><EmptyState icon={<BedDouble size={22} />} title="No one added yet" hint="Add the guests who need a room, then add your hotels and assign rooms." /></div>}
       </section>
 
       <section className="space-y-3">
@@ -171,16 +176,16 @@ export default function StayPage() {
             run(supabase().from("properties").insert({ name: propForm.name.trim(), address: propForm.address.trim() || null }));
             setPropForm({ name: "", address: "" });
           }}>
-            <input required placeholder="Hotel or guesthouse name" value={propForm.name} onChange={(e) => setPropForm({ ...propForm, name: e.target.value })} className="min-w-0 flex-1 rounded border p-2" />
-            <input placeholder="Address (optional)" value={propForm.address} onChange={(e) => setPropForm({ ...propForm, address: e.target.value })} className="min-w-0 flex-1 rounded border p-2" />
-            <button className="rounded bg-rose-600 px-3 py-2 text-white">Add</button>
+            <input required placeholder="Hotel or guesthouse name" value={propForm.name} onChange={(e) => setPropForm({ ...propForm, name: e.target.value })} className="min-w-0 flex-1 rounded-lg border p-2" />
+            <input placeholder="Address (optional)" value={propForm.address} onChange={(e) => setPropForm({ ...propForm, address: e.target.value })} className="min-w-0 flex-1 rounded-lg border p-2" />
+            <button className="rounded-lg bg-rose-600 px-3 py-2 text-white">Add</button>
           </form>
         )}
         {properties.map((p) => {
           const mine = rooms.filter((r) => r.property_id === p.id);
           const f = roomForm[p.id] ?? { count: "", capacity: "2" };
           return (
-            <div key={p.id} className="rounded-lg border bg-white p-3 text-sm">
+            <div key={p.id} className="card p-3 text-sm">
               <div className="flex items-center justify-between">
                 <span className="font-medium">{p.name}{p.address ? ` · ${p.address}` : ""}</span>
                 {canEdit && <button className="text-red-600" onClick={() => confirm(`Delete ${p.name} and its rooms?`) && run(supabase().from("properties").delete().eq("id", p.id))}>Delete</button>}
@@ -199,9 +204,9 @@ export default function StayPage() {
               </div>
               {canEdit && (
                 <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <input type="number" min={1} placeholder="How many rooms" value={f.count} onChange={(e) => setRoomForm({ ...roomForm, [p.id]: { ...f, count: e.target.value } })} className="w-32 rounded border p-2" />
-                  <input type="number" min={1} placeholder="Sleeps" value={f.capacity} onChange={(e) => setRoomForm({ ...roomForm, [p.id]: { ...f, capacity: e.target.value } })} className="w-24 rounded border p-2" />
-                  <button onClick={() => addRooms(p.id)} className="rounded border px-3 py-2">Add rooms</button>
+                  <input type="number" min={1} placeholder="How many rooms" value={f.count} onChange={(e) => setRoomForm({ ...roomForm, [p.id]: { ...f, count: e.target.value } })} className="w-32 rounded-lg border p-2" />
+                  <input type="number" min={1} placeholder="Sleeps" value={f.capacity} onChange={(e) => setRoomForm({ ...roomForm, [p.id]: { ...f, capacity: e.target.value } })} className="w-24 rounded-lg border p-2" />
+                  <button onClick={() => addRooms(p.id)} className="rounded-lg border px-3 py-2">Add rooms</button>
                 </div>
               )}
             </div>

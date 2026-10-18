@@ -96,9 +96,8 @@ export default function ImportPage() {
   return (
     <div className="space-y-5">
       <Link href="/guests" className="text-sm text-rose-600 underline">← Back to guests</Link>
-      <h1 className="text-xl font-semibold">Import guests from a spreadsheet</h1>
 
-      <section className="space-y-2 rounded-lg border bg-white p-4 text-sm">
+      <section className="space-y-2 card p-4 text-sm">
         <p className="font-medium">1. Download the template and fill it in</p>
         <p className="text-gray-600">
           One row per guest or family. Columns: {BASE_HEADERS.join(", ")}, then one column per event ({eventNames.join(", ")}).
@@ -106,15 +105,15 @@ export default function ImportPage() {
           <b> Side</b> is bride, groom or both. Delete the two example rows or leave them, since they are skipped.
         </p>
         <div className="flex flex-wrap gap-2">
-          <button onClick={downloadXlsx} className="rounded border px-3 py-2">Download Excel template (.xlsx)</button>
-          <button onClick={downloadCsv} className="rounded border px-3 py-2">Download CSV template</button>
+          <button onClick={downloadXlsx} className="rounded-lg border px-3 py-2">Download Excel template (.xlsx)</button>
+          <button onClick={downloadCsv} className="rounded-lg border px-3 py-2">Download CSV template</button>
         </div>
         <p className="text-gray-500">
           Google Sheets works too: File → Download → Microsoft Excel (.xlsx). Keep phone numbers as normal text or numbers; both are fine.
         </p>
       </section>
 
-      <section className="space-y-2 rounded-lg border bg-white p-4 text-sm">
+      <section className="space-y-2 card p-4 text-sm">
         <p className="font-medium">2. Upload it and check the preview</p>
         {canEdit ? (
           <input type="file" accept=".xlsx,.csv" onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} />
@@ -137,7 +136,7 @@ export default function ImportPage() {
             </p>
             {problems.map((p) => <p key={p} className="text-sm text-amber-700">{p}</p>)}
           </div>
-          <div className="max-h-[28rem] overflow-auto rounded-lg border bg-white">
+          <div className="max-h-[28rem] overflow-auto card">
             <table className="w-full text-sm">
               <thead className="sticky top-0 bg-gray-50 text-left text-gray-500">
                 <tr><th className="p-2">Row</th><th className="p-2">Name</th><th className="p-2">People</th><th className="p-2">Side</th><th className="p-2">Phone</th><th className="p-2">Events</th><th className="p-2">Status</th></tr>
@@ -157,7 +156,7 @@ export default function ImportPage() {
               </tbody>
             </table>
           </div>
-          <button onClick={doImport} disabled={busy || !importable.length} className="rounded bg-rose-600 px-4 py-2 text-white disabled:opacity-40">
+          <button onClick={doImport} disabled={busy || !importable.length} className="rounded-lg bg-rose-600 px-4 py-2 text-white disabled:opacity-40">
             {busy ? "Importing…" : `Import ${importable.length} guests`}
           </button>
         </section>

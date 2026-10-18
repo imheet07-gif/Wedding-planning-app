@@ -2,6 +2,9 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useWedding } from "@/components/WeddingProvider";
+import { useToast } from "@/components/Toast";
+import { EmptyState } from "@/components/ui";
+import { ListChecks } from "lucide-react";
 import { formatDate } from "@/lib/whatsapp";
 
 const STARTER = [
@@ -13,6 +16,7 @@ const STARTER = [
 
 export default function TasksPage() {
   const { tasks, canEdit, refresh } = useWedding();
+  const notify = useToast();
   const [err, setErr] = useState("");
   const [filter, setFilter] = useState<"open" | "done" | "all">("open");
   const [form, setForm] = useState({ title: "", due_on: "", assignee: "" });
@@ -21,6 +25,7 @@ export default function TasksPage() {
   async function run(p: PromiseLike<{ error: { message: string } | null }>) {
     const { error } = await p;
     setErr(error?.message ?? "");
+    notify(error ? error.message : "Saved", error ? "error" : "ok");
     await refresh();
   }
 
@@ -34,17 +39,17 @@ export default function TasksPage() {
       <p className="text-gray-600">{open} open · {tasks.length - open} done</p>
 
       {canEdit && (
-        <form className="grid gap-2 rounded-lg border bg-white p-3 sm:grid-cols-5" onSubmit={(e) => {
+        <form className="grid grid-cols-1 gap-2 card p-3 sm:grid-cols-5" onSubmit={(e) => {
           e.preventDefault();
           run(supabase().from("tasks").insert({
             title: form.title.trim(), due_on: form.due_on || null, assignee: form.assignee.trim() || null,
           }));
           setForm({ title: "", due_on: "", assignee: "" });
         }}>
-          <input required placeholder="What needs doing" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="rounded border p-2 sm:col-span-2" />
-          <input type="date" aria-label="Due date" value={form.due_on} onChange={(e) => setForm({ ...form, due_on: e.target.value })} className="rounded border p-2" />
-          <input placeholder="Who" value={form.assignee} onChange={(e) => setForm({ ...form, assignee: e.target.value })} className="rounded border p-2" />
-          <button className="rounded bg-rose-600 p-2 text-white">Add</button>
+          <input required placeholder="What needs doing" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="rounded-lg border p-2 sm:col-span-2" />
+          <input type="date" aria-label="Due date" value={form.due_on} onChange={(e) => setForm({ ...form, due_on: e.target.value })} className="rounded-lg border p-2" />
+          <input placeholder="Who" value={form.assignee} onChange={(e) => setForm({ ...form, assignee: e.target.value })} className="rounded-lg border p-2" />
+          <button className="rounded-lg bg-rose-600 p-2 text-white">Add</button>
         </form>
       )}
 
@@ -52,11 +57,11 @@ export default function TasksPage() {
 
       <div className="flex gap-2 text-sm">
         {(["open", "done", "all"] as const).map((f) => (
-          <button key={f} onClick={() => setFilter(f)} className={`rounded px-3 py-1 ${filter === f ? "bg-rose-600 text-white" : "border bg-white"}`}>{f}</button>
+          <button key={f} onClick={() => setFilter(f)} className={`rounded-lg px-3 py-1 ${filter === f ? "bg-rose-600 text-white" : "border bg-white"}`}>{f}</button>
         ))}
       </div>
 
-      <div className="rounded-lg border bg-white">
+      <div className="card">
         {shown.map((t) => (
           <div key={t.id} className="flex items-start gap-3 border-b p-3 last:border-b-0">
             <input type="checkbox" className="mt-1" disabled={!canEdit} checked={t.done}
@@ -76,14 +81,14 @@ export default function TasksPage() {
           </div>
         ))}
         {!shown.length && (
-          <div className="p-4 text-sm text-gray-500">
-            Nothing here.
+          <EmptyState icon={<ListChecks size={22} />} title={tasks.length ? "All clear" : "No tasks yet"}
+            hint={tasks.length ? "Nothing in this view." : "Start with our checklist of common wedding tasks, or add your own above."}>
             {canEdit && !tasks.length && (
-              <button className="ml-2 text-rose-600 underline" onClick={() => run(supabase().from("tasks").insert(STARTER.map((title) => ({ title }))))}>
+              <button className="rounded-lg bg-rose-600 px-3 py-2 text-sm text-white" onClick={() => run(supabase().from("tasks").insert(STARTER.map((title) => ({ title }))))}>
                 Add a starter checklist
               </button>
             )}
-          </div>
+          </EmptyState>
         )}
       </div>
     </div>
