@@ -7,7 +7,7 @@ Stack: Next.js (hosted on Vercel) + Supabase (database and email-link login).
 
 ## Setup
 1. Supabase: create a project, open SQL Editor, run `supabase/schema.sql`.
-2. Supabase → Project Settings → API: copy the Project URL and the anon public key.
+2. Supabase → Project Settings → API: copy the Project URL and the publishable key (`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`; the older "anon" key also works as `NEXT_PUBLIC_SUPABASE_ANON_KEY`).
 3. Locally: `cp .env.example .env.local`, fill in both values, `npm install`, `npm run dev`.
 4. Vercel: import this repo, add the same two environment variables, deploy.
 5. Supabase → Authentication → URL Configuration: set Site URL to your Vercel URL
