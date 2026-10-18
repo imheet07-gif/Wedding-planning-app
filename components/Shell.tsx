@@ -64,6 +64,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const { session, loading, me, canEdit, error } = useWedding();
   const path = usePathname();
 
+  // Public page, so it can be linked from the Google sign-in consent screen.
+  if (path === "/privacy") return <>{children}</>;
+
   if (loading) return <p className="p-6 text-gray-500">Loading…</p>;
   if (!session) return <Login />;
 
