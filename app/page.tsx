@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { ArrowRight, CalendarHeart, ListChecks, Send, UsersRound, Wallet, type LucideIcon } from "lucide-react";
+import { ArrowRight, CalendarHeart, ListChecks, MapPin, Send, UsersRound, Wallet, type LucideIcon } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useWedding } from "@/components/WeddingProvider";
 import { useToast } from "@/components/Toast";
@@ -170,11 +170,16 @@ export default function Dashboard() {
           {rows.map(({ ev, invited, yes, no, pending }, i) => {
             const d = ev.event_date ? daysUntil(ev.event_date) : null;
             return (
-              <Link key={ev.id} href={`/events?id=${ev.id}`} style={{ animationDelay: `${300 + i * 50}ms` }} className="card card-hover animate-fade-up space-y-3 p-4">
+              <div key={ev.id} style={{ animationDelay: `${300 + i * 50}ms` }} className="card card-hover animate-fade-up relative space-y-3 p-4">
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <h3 className="font-display text-lg">{ev.name}</h3>
+                    <h3 className="font-display text-lg"><Link href={`/events?id=${ev.id}`} className="after:absolute after:inset-0 after:content-['']">{ev.name}</Link></h3>
                     <p className="text-sm text-gray-500">{[ev.event_date && formatDate(ev.event_date), ev.venue].filter(Boolean).join(" · ") || "Date and venue not set"}</p>
+                    {ev.map_url && (
+                      <a href={ev.map_url} target="_blank" rel="noreferrer" className="relative z-10 mt-1 inline-flex min-h-10 items-center gap-1 text-sm text-rose-700 underline">
+                        <MapPin size={14} aria-hidden />Open in Maps<span className="sr-only"> for {ev.name} (opens in a new tab)</span>
+                      </a>
+                    )}
                   </div>
                   {d !== null && d >= 0 && <span className="shrink-0 rounded-full bg-gold-100 px-2 py-0.5 text-xs font-medium text-gold-600">{when(d)}</span>}
                 </div>
@@ -191,7 +196,7 @@ export default function Dashboard() {
                   <span><span className="mr-1 inline-block h-2 w-2 rounded-full bg-rose-400" />{no} no</span>
                   <span><span className="mr-1 inline-block h-2 w-2 rounded-full bg-gold-400" />{pending} pending</span>
                 </p>
-              </Link>
+              </div>
             );
           })}
         </div>
