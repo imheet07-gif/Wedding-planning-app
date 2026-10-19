@@ -87,8 +87,12 @@ export function templateFor(ev: Pick<Ev, "invite_text" | "invite_text_gu" | "inv
   return saved ?? DEFAULT_TEXT[lang];
 }
 
+// The guest's name as it should read in this language; the English name is used when no spelling was entered.
+export const nameFor = (g: { name: string; name_gu?: string | null; name_hi?: string | null }, lang: Lang) =>
+  (lang === "gu" ? g.name_gu : lang === "hi" ? g.name_hi : null)?.trim() || g.name;
+
 export function buildParts(opts: {
-  guest: { name: string; side: "bride" | "groom" | "both" };
+  guest: { name: string; name_gu?: string | null; name_hi?: string | null; side: "bride" | "groom" | "both" };
   event: Ev;
   texts?: Partial<Record<Lang, string>>; // unsaved edits, otherwise the event's saved text
   langs: Lang[];
@@ -103,7 +107,7 @@ export function buildParts(opts: {
       ? new Date(`1970-01-01T${event.start_time}`).toLocaleTimeString(LOCALE[lang], { hour: "numeric", minute: "2-digit" })
       : "";
     const text = fill(opts.texts?.[lang] ?? templateFor(event, lang), {
-      name: guest.name,
+      name: nameFor(guest, lang),
       event: EVENT_NAME[event.name.trim().toLowerCase()]?.[lang] ?? event.name,
       date,
       time,

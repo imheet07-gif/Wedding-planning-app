@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { useWedding } from "@/components/WeddingProvider";
 import { useToast } from "@/components/Toast";
 import { EmptyState } from "@/components/ui";
+import { NameLangs } from "@/components/NameLangs";
 import { Check, FileSpreadsheet, Minus, Phone, Plus, Trash2, UsersRound, X } from "lucide-react";
 import type { Side } from "@/lib/types";
 
@@ -196,6 +197,7 @@ export default function GuestsPage() {
                 </button>
               )}
             </div>
+            <NameLangs g={g} canEdit={canEdit} save={(patch) => run(supabase().from("guests").update(patch).eq("id", g.id))} />
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-500">People</span>
               {canEdit ? (
@@ -249,6 +251,7 @@ export default function GuestsPage() {
                   <td className="p-2">
                     {g.name}
                     <div className="text-xs text-gray-500">{[g.grp, g.phone, g.diet].filter(Boolean).join(" · ")}</div>
+                    <NameLangs g={g} canEdit={canEdit} save={(patch) => run(supabase().from("guests").update(patch).eq("id", g.id))} />
                   </td>
                   <td className="p-2">{sideLabel[g.side]}</td>
                   <td className="p-2">
