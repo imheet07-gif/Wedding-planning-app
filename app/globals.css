@@ -62,6 +62,7 @@
 
 :root {
   color-scheme: light;
+  --surface: #ffffff;
   /* iPhone notch and home-indicator areas (zero elsewhere). Needs viewport-fit=cover in the layout. */
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -103,7 +104,7 @@ button.bg-rose-600:not(:disabled):hover { background-color: var(--color-rose-700
 button.bg-green-700:not(:disabled):hover { filter: brightness(0.93); }
 
 .card {
-  background: #fff;
+  background: var(--surface);
   border: 1px solid var(--color-gray-200);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-card);
@@ -121,3 +122,59 @@ button.bg-green-700:not(:disabled):hover { filter: brightness(0.93); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
+
+/* ---------- Dark theme ----------
+   Applied when <html data-theme="dark">, which a small script sets before first paint:
+   from the person's choice in Settings, or from the phone's own setting when they chose "Match my device". */
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --surface: #201819;
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 4px 14px rgb(0 0 0 / 0.3);
+
+  /* The grey scale runs light to dark in the app, so reversing it flips every grey in one go. */
+  --color-gray-50: #151012;
+  --color-gray-100: #1e1719;
+  --color-gray-200: #35292e;
+  --color-gray-300: #4a3c42;
+  --color-gray-400: #a99da3;
+  --color-gray-500: #bbb0b5;
+  --color-gray-600: #cfc7cb;
+  --color-gray-700: #e0d9dd;
+  --color-gray-800: #ece7ea;
+  --color-gray-900: #f7f3f5;
+
+  /* Tinted backgrounds and borders become deep tints. Strong brand shades stay as they are. */
+  --color-rose-50: #2b1319;
+  --color-rose-100: #3d1824;
+  --color-rose-200: #5e2538;
+  --color-rose-300: #8f3a56;
+  --color-rose-400: #c24d70;
+  --color-green-50: #12261a;
+  --color-amber-50: #2b2110;
+  --color-amber-200: #5c4818;
+  --color-amber-300: #7a6020;
+  --color-red-50: #2c1214;
+  --color-red-200: #6b2a2e;
+  --color-gold-100: #3a2d0e;
+}
+/* Colours used both as a fill (white text on top) and as text need a lighter text version on dark. */
+html[data-theme="dark"] .bg-white { background-color: var(--surface); }
+html[data-theme="dark"] .bg-white\/90 { background-color: color-mix(in oklab, var(--surface) 90%, transparent); }
+html[data-theme="dark"] .bg-white\/95 { background-color: color-mix(in oklab, var(--surface) 95%, transparent); }
+html[data-theme="dark"] .text-rose-600,
+html[data-theme="dark"] .text-rose-700,
+html[data-theme="dark"] .text-rose-800,
+html[data-theme="dark"] .hover\:text-rose-800:hover { color: #f58aa5; }
+html[data-theme="dark"] .text-red-600,
+html[data-theme="dark"] .text-red-700,
+html[data-theme="dark"] .hover\:text-red-600:hover { color: #ff9aa0; }
+html[data-theme="dark"] .text-green-700,
+html[data-theme="dark"] .text-green-800 { color: #7ee0a3; }
+html[data-theme="dark"] .text-amber-700,
+html[data-theme="dark"] .text-amber-800 { color: #f2c86b; }
+html[data-theme="dark"] .text-gold-600 { color: #f0c15a; }
+html[data-theme="dark"] .bg-gray-900 { background-color: #3a2f34; }
+html[data-theme="dark"] input,
+html[data-theme="dark"] select,
+html[data-theme="dark"] textarea { background-color: var(--surface); color: var(--color-gray-900); }
+html[data-theme="dark"] input[type="checkbox"] { color-scheme: dark; }

@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase";
 import { useWedding } from "@/components/WeddingProvider";
 import { useToast } from "@/components/Toast";
 import { TextSize } from "@/components/TextSize";
+import { ThemePicker } from "@/components/Theme";
 
 export default function SettingsPage() {
   const { session, me, canEdit, settings, refresh } = useWedding();
@@ -21,6 +22,12 @@ export default function SettingsPage() {
 
   return (
     <div className="max-w-xl space-y-4">
+      <section className="card space-y-3 p-4">
+        <h2 className="font-display text-lg">Appearance</h2>
+        <p className="text-sm text-gray-600">By default the app follows your phone or laptop and switches to dark mode when your device does. Choose Light or Dark to override that on this device.</p>
+        <ThemePicker />
+      </section>
+
       <section className="card space-y-3 p-4">
         <h2 className="font-display text-lg">Text size</h2>
         <p className="text-sm text-gray-600">Makes everything in the app bigger. It is saved to your account, so it follows you to any phone or laptop you sign in on.</p>

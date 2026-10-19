@@ -43,7 +43,7 @@ const GROUPS: { title: string; items: Item[] }[] = [
     title: "Family & account",
     items: [
       { href: "/family", label: "Family", hint: "Who can see and edit", icon: Heart },
-      { href: "/settings", label: "Settings", hint: "Text size, phone numbers and your account", icon: SettingsIcon },
+      { href: "/settings", label: "Settings", hint: "Appearance, text size, phone numbers and your account", icon: SettingsIcon },
     ],
   },
 ];
@@ -94,9 +94,9 @@ function Login() {
         <Brand light />
         <div className="py-2 lg:py-12">
           <h1 className="font-display text-3xl leading-tight lg:text-5xl">Every guest, vendor and detail in one place.</h1>
-          <p className="mt-4 max-w-md text-rose-100">Plan the haldi, mehendi, sangeet, mameru and wedding day together with the family.</p>
+          <p className="mt-4 max-w-md text-[#fde8ec]">Plan the haldi, mehendi, sangeet, mameru and wedding day together with the family.</p>
         </div>
-        <p className="hidden text-sm text-rose-200 lg:block">Private to the family. New sign-ins are approved by an editor.</p>
+        <p className="hidden text-sm text-[#f9ccd6] lg:block">Private to the family. New sign-ins are approved by an editor.</p>
       </section>
       <section className="flex items-center justify-center p-6">
         <div className="w-full max-w-sm animate-fade-up space-y-4">
@@ -132,7 +132,7 @@ function NavLink({ item, active, onClick }: { item: Item; active: boolean; onCli
       aria-current={active ? "page" : undefined}
       className={`group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium ${active ? "bg-rose-600 text-white shadow-sm" : "text-gray-700 hover:bg-rose-50 hover:text-rose-800"}`}
     >
-      <Icon size={18} className={active ? "" : "text-gray-400 group-hover:text-rose-600"} />
+      <Icon size={18} className={active ? "" : "text-gray-400 group-hover:text-rose-500"} />
       {item.label}
     </Link>
   );

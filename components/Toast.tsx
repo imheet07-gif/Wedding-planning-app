@@ -24,7 +24,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       <div role="status" aria-live="polite" className="pointer-events-none fixed inset-x-0 bottom-[calc(6rem+var(--safe-bottom))] z-50 flex flex-col items-center gap-2 px-4 lg:bottom-6 print:hidden">
         {items.map((i) => (
           <div key={i.id} className="pointer-events-auto flex max-w-sm animate-pop items-center gap-2 rounded-full bg-gray-900 px-4 py-2 text-sm text-white shadow-lg">
-            {i.kind === "ok" ? <CheckCircle2 size={16} className="shrink-0 text-green-400" /> : <XCircle size={16} className="shrink-0 text-rose-300" />}
+            {i.kind === "ok" ? <CheckCircle2 size={16} className="shrink-0 text-green-400" /> : <XCircle size={16} className="shrink-0 text-[#f2a3b4]" />}
             <span>{i.text}</span>
           </div>
         ))}
