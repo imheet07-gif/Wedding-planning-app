@@ -3,10 +3,12 @@ import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useWedding } from "@/components/WeddingProvider";
+import { useToast } from "@/components/Toast";
 import type { Rsvp, WeddingEvent } from "@/lib/types";
 
 function EventCard({ ev, open, onToggle }: { ev: WeddingEvent; open: boolean; onToggle: () => void }) {
   const { guests, invitations, canEdit, refresh } = useWedding();
+  const notify = useToast();
   const [err, setErr] = useState("");
   const inv = invitations.filter((i) => i.event_id === ev.id);
   const people = inv.reduce((n, i) => n + (guests.find((g) => g.id === i.guest_id)?.headcount ?? 0), 0);
@@ -14,12 +16,14 @@ function EventCard({ ev, open, onToggle }: { ev: WeddingEvent; open: boolean; on
   async function save(patch: Partial<WeddingEvent>) {
     const { error } = await supabase().from("events").update(patch).eq("id", ev.id);
     setErr(error?.message ?? "");
+    notify(error ? error.message : "Saved", error ? "error" : "ok");
     await refresh();
   }
 
   async function setRsvp(guestId: string, rsvp: Rsvp) {
     const { error } = await supabase().from("invitations").update({ rsvp }).match({ guest_id: guestId, event_id: ev.id });
     setErr(error?.message ?? "");
+    notify(error ? error.message : "Saved", error ? "error" : "ok");
     await refresh();
   }
 
@@ -28,19 +32,19 @@ function EventCard({ ev, open, onToggle }: { ev: WeddingEvent; open: boolean; on
       <span className="text-gray-500">{label}</span>
       <input type={type} disabled={!canEdit} defaultValue={ev[key] ?? ""}
         onBlur={(e) => e.target.value !== (ev[key] ?? "") && save({ [key]: e.target.value || null })}
-        className="mt-1 w-full rounded border p-2 disabled:bg-gray-50" />
+        className="mt-1 w-full rounded-lg border p-2 disabled:bg-gray-50" />
     </label>
   );
 
   return (
-    <section className="rounded-lg border bg-white p-4">
+    <section className="card p-4">
       <button onClick={onToggle} className="flex w-full items-center justify-between text-left">
         <h2 className="font-semibold">{ev.name}</h2>
         <span className="text-sm text-gray-500">{people} people · {open ? "hide" : "show"}</span>
       </button>
       {open && (
         <div className="mt-3 space-y-3">
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             {field("event_date", "Date", "date")}
             {field("start_time", "Start time", "time")}
             {field("venue", "Venue")}
@@ -56,7 +60,7 @@ function EventCard({ ev, open, onToggle }: { ev: WeddingEvent; open: boolean; on
                     <td className="py-1.5">{g.name}</td>
                     <td className="py-1.5 text-gray-500">{g.headcount}</td>
                     <td className="py-1.5 text-right">
-                      <select disabled={!canEdit} value={i.rsvp} onChange={(e) => setRsvp(g.id, e.target.value as Rsvp)} className="rounded border p-1">
+                      <select disabled={!canEdit} value={i.rsvp} onChange={(e) => setRsvp(g.id, e.target.value as Rsvp)} className="rounded-lg border p-1">
                         <option value="pending">Pending</option>
                         <option value="yes">Yes</option>
                         <option value="no">No</option>

@@ -10,6 +10,7 @@ import type {
 type Ctx = {
   session: Session | null;
   loading: boolean;
+  ready: boolean;
   me: Profile | null;
   canEdit: boolean;
   events: WeddingEvent[];
@@ -41,6 +42,7 @@ export function useWedding() {
 export function WeddingProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [ready, setReady] = useState(false);
   const [events, setEvents] = useState<WeddingEvent[]>([]);
   const [guests, setGuests] = useState<Guest[]>([]);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
@@ -90,6 +92,7 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
     setRooms(((rm.data as Room[]) ?? []).sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true })));
     setStays((st.data as Stay[]) ?? []);
     setTasks((tk.data as Task[]) ?? []);
+    setReady(true);
     setSettings(Object.fromEntries(((se.data as { key: string; value: string }[]) ?? []).map((r) => [r.key, r.value])));
   }, []);
 
@@ -115,7 +118,7 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <WeddingContext.Provider
-      value={{ session, loading, me, canEdit: me?.role === "editor", events, guests, invitations, profiles, vendors, vendorEvents, payments, budget, expenses, properties, rooms, stays, tasks, settings, error, refresh }}
+      value={{ session, loading, ready, me, canEdit: me?.role === "editor", events, guests, invitations, profiles, vendors, vendorEvents, payments, budget, expenses, properties, rooms, stays, tasks, settings, error, refresh }}
     >
       {children}
     </WeddingContext.Provider>
