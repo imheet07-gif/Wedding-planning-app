@@ -5,7 +5,7 @@ import { useWedding } from "@/components/WeddingProvider";
 import { useToast } from "@/components/Toast";
 import { TextSize } from "@/components/TextSize";
 import { ThemePicker } from "@/components/Theme";
-import { HeroPhoto } from "@/components/Couple";
+import { PhotoBanner, SHAPES, parseShape, type Shape } from "@/components/Couple";
 import { parseFocus, shrinkImage } from "@/lib/image";
 
 export default function SettingsPage() {
@@ -17,6 +17,7 @@ export default function SettingsPage() {
   const [focus, setFocus] = useState<[number, number] | null>(null);
   const crop = focus ?? parseFocus(settings.couple_photo_focus);
   const [busy, setBusy] = useState(false);
+  const shape = parseShape(settings.couple_photo_shape);
 
   async function save(key: string, value: string, ok = "Saved") {
     const { error } = await supabase().from("app_settings").upsert({ key, value });
@@ -72,16 +73,21 @@ export default function SettingsPage() {
             className="mt-1 w-full rounded-lg border p-2.5" onBlur={(e) => e.target.value.trim() !== (settings.couple_names ?? "") && save("couple_names", e.target.value.trim(), "Names saved")} />
         </label>
         <div className="space-y-3">
-          {([["Phone", "w-44", "stacked"], ["Laptop", "aspect-[3/1] w-full max-w-sm", "wide"]] as const).map(([label, size, mode]) => (
+          {([["Phone", "w-44", "stacked"], ["Laptop", `${SHAPES[shape].preview} w-full max-w-sm`, "wide"]] as const).map(([label, size, mode]) => (
             <div key={label}>
               <p className="mb-1 text-xs text-gray-500">{label}</p>
-              <div className={`hero relative overflow-hidden rounded-2xl text-white shadow-card ${size} ${mode === "stacked" ? "flex flex-col" : "flex flex-col justify-center"}`}>
-                {photo && <HeroPhoto url={photo} focus={crop} mode={mode} />}
-                <div className={`relative ${mode === "stacked" ? "-mt-3 px-3 pb-3" : "max-w-[44%] px-4"}`}>
-                  <p className="text-[9px] uppercase tracking-widest text-gold-400">Wedding day</p>
-                  <p className="font-display text-sm leading-tight">{settings.couple_names || "Aanya & Rohan"}</p>
-                  <p className="font-display text-xl leading-none">121 <span className="font-sans text-[9px]">days to go</span></p>
-                </div>
+              <div className={size}>
+                {photo ? (
+                  <PhotoBanner url={photo} focus={crop} shape={shape} mode={mode} interactive={false}>
+                    <div className={mode === "stacked" ? "px-3 pb-3 pt-3" : "px-4"}>
+                      <p className="text-[9px] uppercase tracking-widest text-[#f0cf75]">Wedding day</p>
+                      <p className="font-display text-sm leading-tight">{settings.couple_names || "Aanya & Rohan"}</p>
+                      <p className="font-display text-xl leading-none">121 <span className="font-sans text-[9px]">days to go</span></p>
+                    </div>
+                  </PhotoBanner>
+                ) : (
+                  <div className="hero flex aspect-[7/5] items-center justify-center rounded-2xl text-xs text-[#f9ccd6]">No photo yet</div>
+                )}
               </div>
             </div>
           ))}
@@ -92,7 +98,18 @@ export default function SettingsPage() {
               {busy && <p className="text-gray-500">Uploading…</p>}
               {photo && (
                 <>
-                  <p className="text-gray-600">The photo is cropped to fit, differently on phone and laptop. Move these until both previews look right.</p>
+                  <div role="group" aria-label="Photo shape">
+                    <p className="mb-1 text-gray-600">How much of the photo shows</p>
+                    <div className="flex gap-2">
+                      {(Object.keys(SHAPES) as Shape[]).map((k) => (
+                        <button key={k} aria-pressed={shape === k} onClick={() => save("couple_photo_shape", k, "Shape saved")}
+                          className={`min-h-11 flex-1 rounded-lg border px-3 font-medium ${shape === k ? "border-rose-600 bg-rose-600 text-white" : "bg-white text-gray-700"}`}>
+                          {SHAPES[k].label}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="mt-1 text-xs text-gray-500">Close-up photos need Square or Tall. Then move the sliders until both previews show your faces.</p>
+                  </div>
                   {(["Left to right", "Top to bottom"] as const).map((label, i) => (
                     <label key={label} className="block">
                       <span className="text-gray-600">{label}</span>
