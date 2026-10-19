@@ -97,7 +97,7 @@ export default function GuestsPage() {
             {showAdd ? <X size={16} /> : <Plus size={16} />}{showAdd ? "Close" : "Add guests"}
           </button>
           <Link href="/import" className="inline-flex items-center gap-2 text-sm text-rose-700 underline">
-            <FileSpreadsheet size={16} />Import from a spreadsheet
+            <FileSpreadsheet size={16} />Import or sync a spreadsheet
           </Link>
         </div>
       )}
