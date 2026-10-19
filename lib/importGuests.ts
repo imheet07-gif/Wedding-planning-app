@@ -13,6 +13,8 @@ export type ParsedRow = {
   diet: string | null;
   notes: string | null;
   eventIds: string[];
+  sideGiven: boolean; // false when the Side cell was blank or unreadable, so a sync leaves the saved side alone
+  countGiven: boolean;
   status: "ok" | "warning" | "error" | "duplicate";
   messages: string[];
 };
@@ -71,17 +73,17 @@ export function parseCsv(input: string): string[][] {
   return rows;
 }
 
-const guestKey = (name: string, phone: string | null) =>
+export const guestKey = (name: string, phone: string | null) =>
   `${name.toLowerCase().replace(/\s+/g, " ").trim()}|${(phone ?? "").replace(/\D/g, "").slice(-10)}`;
 
 export function parseGuestRows(
   data: Cell[][],
   events: { id: string; name: string }[],
   existing: { name: string; phone: string | null }[],
-): { rows: ParsedRow[]; problems: string[] } {
+): { rows: ParsedRow[]; problems: string[]; columns: string[] } {
   const problems: string[] = [];
   const headerAt = data.findIndex((r) => r.some((c) => text(c)));
-  if (headerAt < 0) return { rows: [], problems: ["The file is empty."] };
+  if (headerAt < 0) return { rows: [], problems: ["The file is empty."], columns: [] };
 
   const headers = data[headerAt].map((c) => norm(text(c)));
   const col: Partial<Record<keyof typeof ALIASES, number>> = {};
@@ -89,7 +91,7 @@ export function parseGuestRows(
     const i = headers.findIndex((h) => names.includes(h));
     if (i >= 0) col[field as keyof typeof ALIASES] = i;
   }
-  if (col.name === undefined) return { rows: [], problems: ['There is no "Name" column. Use the template from this page.'] };
+  if (col.name === undefined) return { rows: [], problems: ['There is no "Name" column. Use the template from this page.'], columns: [] };
 
   const eventCols = events
     .map((ev) => ({ ev, i: headers.indexOf(norm(ev.name)) }))
@@ -112,36 +114,38 @@ export function parseGuestRows(
     let status: ParsedRow["status"] = "ok";
     const warn = (m: string) => { messages.push(m); if (status === "ok") status = "warning"; };
 
-    if (!name) { rows.push({ line, name: "", headcount: 1, side: "both", grp: null, phone: null, diet: null, notes: null, eventIds: [], status: "error", messages: ["Name is missing."] }); return; }
+    if (!name) { rows.push({ line, name: "", headcount: 1, side: "both", grp: null, phone: null, diet: null, notes: null, eventIds: [], sideGiven: false, countGiven: false, status: "error", messages: ["Name is missing."] }); return; }
 
     let headcount = 1;
+    let countGiven = false;
     const rawCount = get("headcount");
     if (rawCount) {
       const n = Number(rawCount);
-      if (Number.isInteger(n) && n >= 1 && n <= 500) headcount = n;
+      if (Number.isInteger(n) && n >= 1 && n <= 500) { headcount = n; countGiven = true; }
       else warn(`People "${rawCount}" is not a whole number, set to 1.`);
     }
 
     let side: Side = "both";
+    let sideGiven = true;
     const rawSide = norm(get("side"));
     if (["bride", "brides", "bride side", "bride s side"].includes(rawSide)) side = "bride";
     else if (["groom", "grooms", "groom side", "groom s side"].includes(rawSide)) side = "groom";
     else if (rawSide === "both") side = "both";
-    else warn(rawSide ? `Side "${get("side")}" not recognised, set to both.` : "Side is blank, set to both.");
+    else { sideGiven = false; warn(rawSide ? `Side "${get("side")}" not recognised, set to both.` : "Side is blank, set to both."); }
 
     const phone = get("phone") || null;
     const eventIds = eventCols.filter((x) => TRUE_WORDS.has(text(r[x.i]).toLowerCase())).map((x) => x.ev.id);
 
     const key = guestKey(name, phone);
     if (seen.has(key)) {
-      rows.push({ line, name, headcount, side, grp: get("grp") || null, phone, diet: get("diet") || null, notes: get("notes") || null, eventIds, status: "duplicate", messages: ["Already in the guest list (same name and phone)."] });
+      rows.push({ line, name, headcount, side, grp: get("grp") || null, phone, diet: get("diet") || null, notes: get("notes") || null, eventIds, sideGiven, countGiven, status: "duplicate", messages: ["Already in the guest list (same name and phone)."] });
       return;
     }
     seen.add(key);
     if (!eventIds.length && eventCols.length) warn("Not invited to any event.");
 
-    rows.push({ line, name, headcount, side, grp: get("grp") || null, phone, diet: get("diet") || null, notes: get("notes") || null, eventIds, status, messages });
+    rows.push({ line, name, headcount, side, grp: get("grp") || null, phone, diet: get("diet") || null, notes: get("notes") || null, eventIds, sideGiven, countGiven, status, messages });
   });
 
-  return { rows, problems };
+  return { rows, problems, columns: eventCols.map((x) => x.ev.id) };
 }
