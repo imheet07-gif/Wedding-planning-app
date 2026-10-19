@@ -5,7 +5,7 @@ import { useWedding } from "@/components/WeddingProvider";
 import { useToast } from "@/components/Toast";
 import { TextSize } from "@/components/TextSize";
 import { ThemePicker } from "@/components/Theme";
-import { HeroPhoto, SHAPES, parseShape, type Shape } from "@/components/Couple";
+import { PhotoBanner, SHAPES, parseShape, type Shape } from "@/components/Couple";
 import { parseFocus, shrinkImage } from "@/lib/image";
 
 export default function SettingsPage() {
@@ -76,13 +76,18 @@ export default function SettingsPage() {
           {([["Phone", "w-44", "stacked"], ["Laptop", `${SHAPES[shape].preview} w-full max-w-sm`, "wide"]] as const).map(([label, size, mode]) => (
             <div key={label}>
               <p className="mb-1 text-xs text-gray-500">{label}</p>
-              <div className={`hero relative overflow-hidden rounded-2xl text-white shadow-card ${size} ${mode === "stacked" ? "flex flex-col" : "flex flex-col justify-center"}`}>
-                {photo && <HeroPhoto url={photo} focus={crop} shape={shape} mode={mode} />}
-                <div className={`relative ${mode === "stacked" ? "-mt-1 px-3 pb-3" : "max-w-[44%] px-4"}`}>
-                  <p className="text-[9px] uppercase tracking-widest text-[#f0cf75]">Wedding day</p>
-                  <p className="font-display text-sm leading-tight">{settings.couple_names || "Aanya & Rohan"}</p>
-                  <p className="font-display text-xl leading-none">121 <span className="font-sans text-[9px]">days to go</span></p>
-                </div>
+              <div className={size}>
+                {photo ? (
+                  <PhotoBanner url={photo} focus={crop} shape={shape} mode={mode} interactive={false}>
+                    <div className={mode === "stacked" ? "px-3 pb-3 pt-3" : "px-4"}>
+                      <p className="text-[9px] uppercase tracking-widest text-[#f0cf75]">Wedding day</p>
+                      <p className="font-display text-sm leading-tight">{settings.couple_names || "Aanya & Rohan"}</p>
+                      <p className="font-display text-xl leading-none">121 <span className="font-sans text-[9px]">days to go</span></p>
+                    </div>
+                  </PhotoBanner>
+                ) : (
+                  <div className="hero flex aspect-[7/5] items-center justify-center rounded-2xl text-xs text-[#f9ccd6]">No photo yet</div>
+                )}
               </div>
             </div>
           ))}
