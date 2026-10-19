@@ -185,7 +185,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const moreActive = moreItems.some((i) => i.href === path) || path in EXTRA;
 
   return (
-    <div className="min-h-dvh lg:pl-64">
+    <div className="flex min-h-dvh flex-col lg:block lg:pl-64">
       <TextSizeSync />
       <a href="#main" className="sr-only z-50 rounded-lg bg-white px-4 py-2 text-rose-800 shadow focus:not-sr-only focus:fixed focus:left-4 focus:top-4">Skip to content</a>
       {/* Desktop sidebar */}
@@ -217,7 +217,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         <span className="flex h-8 w-8 items-center justify-center rounded-full bg-rose-100 text-sm font-medium text-rose-700">{initial}</span>
       </header>
 
-      <main id="main" tabIndex={-1} className="mx-auto max-w-5xl overflow-x-hidden px-4 pb-[calc(7rem+var(--safe-bottom))] pt-5 outline-none lg:px-8 lg:pb-12 lg:pt-8">
+      <main id="main" tabIndex={-1} className="mx-auto w-full max-w-5xl flex-1 overflow-x-hidden px-4 pb-8 pt-5 outline-none lg:px-8 lg:pb-12 lg:pt-8">
         {current && (
           <div className="mb-5 print:hidden">
             <h1 className="font-display text-3xl text-gray-900">{current.label}</h1>
@@ -234,7 +234,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
       </main>
 
       {/* Mobile bottom bar */}
-      <nav className="fixed inset-x-0 bottom-0 z-30 flex border-t bg-white/95 pb-[var(--safe-bottom)] backdrop-blur lg:hidden print:hidden">
+      <nav className="sticky bottom-0 z-30 flex border-t bg-white/95 pb-[var(--safe-bottom)] backdrop-blur lg:hidden print:hidden">
         {bottom.map((i) => {
           const Icon = i.icon;
           const active = path === i.href;
