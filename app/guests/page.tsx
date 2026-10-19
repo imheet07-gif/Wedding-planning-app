@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useWedding } from "@/components/WeddingProvider";
@@ -81,6 +82,12 @@ export default function GuestsPage() {
 
   return (
     <div className="space-y-6">
+      {canEdit && (
+        <p className="text-sm">
+          Have a big list?{" "}
+          <Link href="/import" className="text-rose-600 underline">Import guests from a spreadsheet</Link>
+        </p>
+      )}
       {canEdit && (
         <div className="grid gap-4 md:grid-cols-2">
           <form onSubmit={addGuest} className="space-y-2 rounded-lg border bg-white p-4">
