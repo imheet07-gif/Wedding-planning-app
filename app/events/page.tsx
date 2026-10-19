@@ -4,6 +4,8 @@ import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useWedding } from "@/components/WeddingProvider";
 import { useToast } from "@/components/Toast";
+import { cleanMapUrl, looksLikeGoogleMaps } from "@/lib/invites";
+import { MapPin } from "lucide-react";
 import type { Rsvp, WeddingEvent } from "@/lib/types";
 
 function EventCard({ ev, open, onToggle }: { ev: WeddingEvent; open: boolean; onToggle: () => void }) {
@@ -11,6 +13,7 @@ function EventCard({ ev, open, onToggle }: { ev: WeddingEvent; open: boolean; on
   const notify = useToast();
   const [err, setErr] = useState("");
   const inv = invitations.filter((i) => i.event_id === ev.id);
+  const [mapHint, setMapHint] = useState("");
   const people = inv.reduce((n, i) => n + (guests.find((g) => g.id === i.guest_id)?.headcount ?? 0), 0);
 
   async function save(patch: Partial<WeddingEvent>) {
@@ -48,6 +51,28 @@ function EventCard({ ev, open, onToggle }: { ev: WeddingEvent; open: boolean; on
             {field("event_date", "Date", "date")}
             {field("start_time", "Start time", "time")}
             {field("venue", "Venue")}
+          </div>
+          <div className="space-y-1">
+            <label className="block text-sm">
+              <span className="text-gray-500">Google Maps link for the venue</span>
+              <input type="url" inputMode="url" disabled={!canEdit} defaultValue={ev.map_url ?? ""} placeholder="https://maps.app.goo.gl/…" aria-label="Google Maps link for the venue"
+                className="mt-1 w-full rounded-lg border p-2 disabled:bg-gray-50"
+                onBlur={(e) => {
+                  const clean = cleanMapUrl(e.target.value);
+                  if (clean === null) { setMapHint("That does not look like a web address. Copy the link from Google Maps (Share, then Copy link)."); return; }
+                  setMapHint(clean && !looksLikeGoogleMaps(clean) ? "Saved, but this does not look like a Google Maps link." : "");
+                  e.target.value = clean;
+                  if (clean !== (ev.map_url ?? "")) save({ map_url: clean || null });
+                }} />
+            </label>
+            {mapHint && <p role="status" className="text-xs text-amber-700">{mapHint}</p>}
+            {ev.map_url ? (
+              <a href={ev.map_url} target="_blank" rel="noreferrer" className="inline-flex min-h-10 items-center gap-1 text-sm text-rose-700 underline">
+                <MapPin size={14} aria-hidden />Open in Google Maps
+              </a>
+            ) : (
+              canEdit && <p className="text-xs text-gray-500">In Google Maps, find the venue, tap Share, then Copy link, and paste it here. It goes into the invitations automatically.</p>
+            )}
           </div>
           {err && <p className="text-sm text-red-600">{err}</p>}
           <table className="w-full text-sm">

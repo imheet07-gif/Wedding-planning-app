@@ -6,9 +6,9 @@ export const LANG_LABEL: Record<Lang, string> = { gu: "ગુજરાતી", h
 const LOCALE: Record<Lang, string> = { gu: "gu-IN", hi: "hi-IN", en: "en-IN" };
 
 export const DEFAULT_TEXT: Record<Lang, string> = {
-  gu: "પ્રિય {name},\n\n{date} ના રોજ {venue} ખાતે યોજાનાર {event} પ્રસંગે આપની ઉપસ્થિતિ અમારા માટે અત્યંત આનંદની વાત હશે.\n\nસ્નેહ સહિત,\n{from}",
-  hi: "प्रिय {name},\n\n{date} को {venue} में आयोजित {event} में आपकी उपस्थिति हमारे लिए अत्यंत हर्ष का विषय होगी।\n\nस्नेह सहित,\n{from}",
-  en: "Dear {name},\n\nWe would be delighted to have you with us for the {event} on {date} at {venue}.\n\nWith love,\n{from}",
+  gu: "પ્રિય {name},\n\n{date} ના રોજ {venue} ખાતે યોજાનાર {event} પ્રસંગે આપની ઉપસ્થિતિ અમારા માટે અત્યંત આનંદની વાત હશે.\n\n📍 {map}\n\nસ્નેહ સહિત,\n{from}",
+  hi: "प्रिय {name},\n\n{date} को {venue} में आयोजित {event} में आपकी उपस्थिति हमारे लिए अत्यंत हर्ष का विषय होगी।\n\n📍 {map}\n\nस्नेह सहित,\n{from}",
+  en: "Dear {name},\n\nWe would be delighted to have you with us for the {event} on {date} at {venue}.\n\n📍 {map}\n\nWith love,\n{from}",
 };
 
 // Common event names in each language. Anything not listed keeps the name as typed.
@@ -51,11 +51,36 @@ export function familyFor(side: "bride" | "groom" | "both", lang: Lang, s: Setti
   return [bride, groom].filter(Boolean).join(" & ");
 }
 
+// A "📍 {map}" line vanishes when the event has no map link, instead of leaving a lonely pin.
 function fill(template: string, vars: Record<string, string>) {
-  return template.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? vars[k] : m)).replace(/[ \t]+\n/g, "\n").trimEnd();
+  return template
+    .replace(/\{(\w+)\}/g, (m, k) => (k in vars ? vars[k] : m))
+    .replace(/^📍[ \t]*$/gm, "")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trimEnd();
 }
 
-type Ev = { name: string; event_date: string | null; start_time: string | null; venue: string | null; invite_text: string | null; invite_text_gu: string | null; invite_text_hi: string | null };
+// Accepts what people paste from Google Maps (with or without https://). Returns "" to clear the link,
+// null when it is not a web address. Only http(s) is allowed, so nothing odd can end up as a link.
+export function cleanMapUrl(raw: string): string | null {
+  let v = raw.trim();
+  if (!v) return "";
+  if (!/^https?:\/\//i.test(v)) v = `https://${v}`;
+  try {
+    const u = new URL(v);
+    return /^https?:$/.test(u.protocol) && u.hostname.includes(".") ? u.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
+const MAPS_HOSTS = /(^|\.)(google\.[a-z.]+|goo\.gl|g\.co)$/i;
+export const looksLikeGoogleMaps = (url: string) => {
+  try { return MAPS_HOSTS.test(new URL(url).hostname); } catch { return false; }
+};
+
+type Ev = { name: string; event_date: string | null; start_time: string | null; venue: string | null; map_url?: string | null; invite_text: string | null; invite_text_gu: string | null; invite_text_hi: string | null };
 
 export function templateFor(ev: Pick<Ev, "invite_text" | "invite_text_gu" | "invite_text_hi">, lang: Lang): string {
   const saved = lang === "gu" ? ev.invite_text_gu : lang === "hi" ? ev.invite_text_hi : ev.invite_text;
@@ -83,6 +108,7 @@ export function buildParts(opts: {
       date,
       time,
       venue: event.venue || TBA[lang].venue,
+      map: event.map_url ?? "",
       from: familyFor(guest.side, lang, settings),
     });
     return { lang, text };

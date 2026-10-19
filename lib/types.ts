@@ -8,6 +8,7 @@ export type WeddingEvent = {
   event_date: string | null;
   start_time: string | null;
   venue: string | null;
+  map_url: string | null;
   notes: string | null;
   sort_order: number;
   invite_text: string | null;
