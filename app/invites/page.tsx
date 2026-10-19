@@ -83,7 +83,7 @@ function InviteSender({ ev }: { ev: WeddingEvent }) {
       <section className="space-y-2 card p-3">
         <h2 className="font-semibold">Message</h2>
         <p className="text-sm text-gray-500">
-          Write it once per language. Use {"{name}"}, {"{event}"}, {"{date}"}, {"{time}"}, {"{venue}"} and {"{from}"}. They are filled in for each guest:
+          Write it once per language. Use {"{name}"}, {"{event}"}, {"{date}"}, {"{time}"}, {"{venue}"}, {"{map}"} and {"{from}"}. They are filled in for each guest:
           {" "}{"{from}"} is the family on that guest&apos;s side, and the date and event name come out in the same language.
         </p>
         <div role="group" aria-label="Language to edit" className="flex gap-2">
@@ -96,12 +96,18 @@ function InviteSender({ ev }: { ev: WeddingEvent }) {
         </div>
         <textarea aria-label={`Invite message in ${LANG_LABEL[editLang]}`} lang={editLang} rows={7} disabled={!canEdit} value={texts[editLang]}
           onChange={(e) => setTexts({ ...texts, [editLang]: e.target.value })} className="w-full rounded-lg border p-2" />
+        {canEdit && !texts[editLang].includes("{map}") && (
+          <button onClick={() => setTexts({ ...texts, [editLang]: `${texts[editLang].trimEnd()}\n\n📍 {map}` })} className="mr-3 text-sm text-rose-700 underline">
+            Add the map link to this message
+          </button>
+        )}
         {canEdit && (
           <button onClick={() => run(supabase().from("events").update({ invite_text: texts.en, invite_text_gu: texts.gu, invite_text_hi: texts.hi }).eq("id", ev.id))}
             className="rounded-lg bg-rose-600 px-3 py-2 text-white">
             Save messages
           </button>
         )}
+        {!ev.map_url && <p className="text-xs text-amber-700">No map link yet for this event, so the pin line is left out. Add it on the <Link href={`/events?id=${ev.id}`} className="underline">Events page</Link>.</p>}
         <p className="pt-1 text-xs text-gray-500">What {sample.name} will receive{rows[0] ? "" : " (example)"}, in {langs.map((l) => LANG_LABEL[l]).join(" + ")}:</p>
         <div className="space-y-2 rounded-lg bg-green-50 p-3 text-sm">
           {parts(sample).map((p, i) => (
