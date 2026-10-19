@@ -3,13 +3,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
-  BedDouble, CalendarHeart, ClipboardList, Heart, LayoutDashboard, ListChecks, MoreHorizontal, Phone, Printer,
+  BedDouble, CalendarHeart, ClipboardList, Heart, LayoutDashboard, ListChecks, MoreHorizontal, Phone, Printer, Settings as SettingsIcon,
   Send, Store, UsersRound, Wallet, X, LogOut, type LucideIcon,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useWedding } from "./WeddingProvider";
 import { PageSkeleton } from "./ui";
-import { TextSize } from "./TextSize";
+import { TextSizeSync } from "./TextSize";
 
 type Item = { href: string; label: string; hint: string; icon: LucideIcon };
 
@@ -39,7 +39,13 @@ const GROUPS: { title: string; items: Item[] }[] = [
       { href: "/tasks", label: "Tasks", hint: "What still needs doing", icon: ListChecks },
     ],
   },
-  { title: "Family", items: [{ href: "/family", label: "Family", hint: "Who can see and edit", icon: Heart }] },
+  {
+    title: "Family & account",
+    items: [
+      { href: "/family", label: "Family", hint: "Who can see and edit", icon: Heart },
+      { href: "/settings", label: "Settings", hint: "Text size, phone numbers and your account", icon: SettingsIcon },
+    ],
+  },
 ];
 
 const ALL = GROUPS.flatMap((g) => g.items);
@@ -83,7 +89,7 @@ function Login() {
   }
 
   return (
-    <main className="grid grid-cols-1 min-h-screen lg:grid-cols-2">
+    <main className="grid min-h-dvh grid-cols-1 lg:grid-cols-2">
       <section className="hero flex flex-col justify-between gap-6 p-6 text-white lg:p-14">
         <Brand light />
         <div className="py-2 lg:py-12">
@@ -155,7 +161,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
   if (me?.role === "pending") {
     return (
-      <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-4 p-6 text-center">
+      <main className="mx-auto flex min-h-dvh max-w-sm flex-col justify-center gap-4 p-6 text-center">
         <div className="mx-auto"><Brand /></div>
         <div className="card animate-fade-up space-y-3 p-6">
           <h1 className="font-display text-2xl">Waiting for approval</h1>
@@ -179,7 +185,8 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const moreActive = moreItems.some((i) => i.href === path) || path in EXTRA;
 
   return (
-    <div className="min-h-screen lg:pl-64">
+    <div className="min-h-dvh lg:pl-64">
+      <TextSizeSync />
       <a href="#main" className="sr-only z-50 rounded-lg bg-white px-4 py-2 text-rose-800 shadow focus:not-sr-only focus:fixed focus:left-4 focus:top-4">Skip to content</a>
       {/* Desktop sidebar */}
       <aside className="fixed inset-y-0 left-0 hidden w-64 flex-col border-r bg-white px-3 py-5 lg:flex print:hidden">
@@ -192,7 +199,6 @@ export function Shell({ children }: { children: React.ReactNode }) {
             </div>
           ))}
         </nav>
-        <div className="mt-3 border-t px-3 pt-3"><TextSize /></div>
         <div className="flex items-center gap-3 px-3 pt-3">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-rose-100 font-medium text-rose-700">{initial}</span>
           <span className="min-w-0 flex-1 text-xs">
@@ -206,12 +212,12 @@ export function Shell({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Mobile top bar */}
-      <header className="sticky top-0 z-30 flex items-center justify-between border-b bg-white/90 px-4 py-3 backdrop-blur lg:hidden print:hidden">
+      <header className="sticky top-0 z-30 flex items-center justify-between border-b bg-white/90 px-4 pb-3 pt-[calc(0.75rem+var(--safe-top))] backdrop-blur lg:hidden print:hidden">
         <Brand />
         <span className="flex h-8 w-8 items-center justify-center rounded-full bg-rose-100 text-sm font-medium text-rose-700">{initial}</span>
       </header>
 
-      <main id="main" tabIndex={-1} className="mx-auto max-w-5xl overflow-x-hidden px-4 pb-28 pt-5 outline-none lg:px-8 lg:pb-12 lg:pt-8">
+      <main id="main" tabIndex={-1} className="mx-auto max-w-5xl overflow-x-hidden px-4 pb-[calc(7rem+var(--safe-bottom))] pt-5 outline-none lg:px-8 lg:pb-12 lg:pt-8">
         {current && (
           <div className="mb-5 print:hidden">
             <h1 className="font-display text-3xl text-gray-900">{current.label}</h1>
@@ -228,7 +234,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
       </main>
 
       {/* Mobile bottom bar */}
-      <nav className="fixed inset-x-0 bottom-0 z-30 flex border-t bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden print:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-30 flex border-t bg-white/95 pb-[var(--safe-bottom)] backdrop-blur lg:hidden print:hidden">
         {bottom.map((i) => {
           const Icon = i.icon;
           const active = path === i.href;
@@ -248,7 +254,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
       {more && (
         <div className="fixed inset-0 z-40 lg:hidden print:hidden" role="dialog" aria-modal="true" aria-label="More">
           <button aria-label="Close" className="absolute inset-0 bg-black/40" onClick={() => setMore(false)} />
-          <div className="absolute inset-x-0 bottom-0 animate-sheet rounded-t-2xl bg-white p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-2xl">
+          <div className="absolute inset-x-0 bottom-0 animate-sheet rounded-t-2xl bg-white p-4 pb-[calc(1rem+var(--safe-bottom))] shadow-2xl">
             <div className="mb-3 flex items-center justify-between">
               <span className="font-display text-lg">More</span>
               <button onClick={() => setMore(false)} aria-label="Close menu" className="flex h-10 w-10 items-center justify-center rounded-full text-gray-500 hover:bg-gray-100"><X size={18} aria-hidden /></button>
@@ -268,7 +274,6 @@ export function Shell({ children }: { children: React.ReactNode }) {
                 Import
               </Link>
             </div>
-            <div className="mt-4 border-t pt-3"><TextSize /></div>
             <div className="mt-3 flex items-center justify-between border-t pt-3 text-sm">
               <span className="min-w-0 truncate text-gray-500">{email} · {role}</span>
               <button onClick={() => supabase().auth.signOut()} className="shrink-0 text-rose-700 underline">Sign out</button>

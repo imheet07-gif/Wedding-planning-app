@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useWedding } from "@/components/WeddingProvider";
@@ -156,7 +157,7 @@ function InviteSender({ ev }: { ev: WeddingEvent }) {
 }
 
 export default function InvitesPage() {
-  const { events, settings, canEdit, refresh } = useWedding();
+  const { events, settings } = useWedding();
   const [eventId, setEventId] = useState("");
   const ev = events.find((e) => e.id === eventId);
 
@@ -171,17 +172,9 @@ export default function InvitesPage() {
           <option value="">Choose an event…</option>
           {events.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
         </select>
-        <label className="text-sm text-gray-600">
-          Default country code +
-          <input disabled={!canEdit} defaultValue={settings.country_code ?? "91"} className="ml-1 w-14 rounded-lg border p-1"
-            onBlur={async (e) => {
-              const v = e.target.value.replace(/\D/g, "");
-              if (v && v !== settings.country_code) {
-                await supabase().from("app_settings").upsert({ key: "country_code", value: v });
-                await refresh();
-              }
-            }} />
-        </label>
+        <p className="text-sm text-gray-600">
+          Numbers without a country code use +{settings.country_code ?? "91"}. <Link href="/settings" className="text-rose-700 underline">Change in Settings</Link>
+        </p>
       </div>
       {ev && <InviteSender key={ev.id} ev={ev} />}
     </div>

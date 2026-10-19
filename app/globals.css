@@ -62,6 +62,9 @@
 
 :root {
   color-scheme: light;
+  /* iPhone notch and home-indicator areas (zero elsewhere). Needs viewport-fit=cover in the layout. */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 @layer base {
