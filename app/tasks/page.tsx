@@ -46,9 +46,9 @@ export default function TasksPage() {
           }));
           setForm({ title: "", due_on: "", assignee: "" });
         }}>
-          <input required placeholder="What needs doing" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="rounded-lg border p-2 sm:col-span-2" />
+          <input aria-label="What needs doing" required placeholder="What needs doing" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="rounded-lg border p-2 sm:col-span-2" />
           <input type="date" aria-label="Due date" value={form.due_on} onChange={(e) => setForm({ ...form, due_on: e.target.value })} className="rounded-lg border p-2" />
-          <input placeholder="Who" value={form.assignee} onChange={(e) => setForm({ ...form, assignee: e.target.value })} className="rounded-lg border p-2" />
+          <input aria-label="Who" placeholder="Who" value={form.assignee} onChange={(e) => setForm({ ...form, assignee: e.target.value })} className="rounded-lg border p-2" />
           <button className="rounded-lg bg-rose-600 p-2 text-white">Add</button>
         </form>
       )}
@@ -64,7 +64,7 @@ export default function TasksPage() {
       <div className="card">
         {shown.map((t) => (
           <div key={t.id} className="flex items-start gap-3 border-b p-3 last:border-b-0">
-            <input type="checkbox" className="mt-1" disabled={!canEdit} checked={t.done}
+            <input aria-label={`Mark "${t.title}" as done`} type="checkbox" className="mt-1" disabled={!canEdit} checked={t.done}
               onChange={(e) => run(supabase().from("tasks").update({ done: e.target.checked }).eq("id", t.id))} />
             <div className="min-w-0 flex-1">
               <p className={t.done ? "text-gray-400 line-through" : ""}>{t.title}</p>

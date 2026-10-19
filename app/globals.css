@@ -21,8 +21,8 @@
   --color-gray-100: #f5eee6;
   --color-gray-200: #eadfd5;
   --color-gray-300: #d9cabd;
-  --color-gray-400: #ab9b97;
-  --color-gray-500: #7d6e71;
+  --color-gray-400: #7d6e71;
+  --color-gray-500: #6b5d61;
   --color-gray-600: #5f5256;
   --color-gray-700: #483d41;
   --color-gray-800: #33292d;
@@ -31,7 +31,7 @@
   --color-gold-100: #fbf0d4;
   --color-gold-400: #e0b24a;
   --color-gold-500: #c8962e;
-  --color-gold-600: #a67a1f;
+  --color-gold-600: #7a5a14;
 
   --radius-lg: 0.75rem;
   --radius-xl: 1rem;
@@ -97,7 +97,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 button:focus-visible, a:focus-visible { outline: 2px solid var(--color-rose-400); outline-offset: 2px; }
 button:not(:disabled):active { transform: scale(0.97); }
 button.bg-rose-600:not(:disabled):hover { background-color: var(--color-rose-700); box-shadow: 0 4px 12px rgb(166 38 73 / 0.25); }
-button.bg-green-600:not(:disabled):hover { filter: brightness(0.93); }
+button.bg-green-700:not(:disabled):hover { filter: brightness(0.93); }
 
 .card {
   background: #fff;

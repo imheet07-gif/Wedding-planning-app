@@ -116,7 +116,7 @@ export default function ImportPage() {
       <section className="space-y-2 card p-4 text-sm">
         <p className="font-medium">2. Upload it and check the preview</p>
         {canEdit ? (
-          <input type="file" accept=".xlsx,.csv" onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} />
+          <input aria-label="Choose spreadsheet file" type="file" accept=".xlsx,.csv" onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} />
         ) : (
           <p className="text-gray-500">Only editors can import.</p>
         )}

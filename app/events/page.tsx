@@ -60,7 +60,7 @@ function EventCard({ ev, open, onToggle }: { ev: WeddingEvent; open: boolean; on
                     <td className="py-1.5">{g.name}</td>
                     <td className="py-1.5 text-gray-500">{g.headcount}</td>
                     <td className="py-1.5 text-right">
-                      <select disabled={!canEdit} value={i.rsvp} onChange={(e) => setRsvp(g.id, e.target.value as Rsvp)} className="rounded-lg border p-1">
+                      <select aria-label={`RSVP for ${g.name}`} disabled={!canEdit} value={i.rsvp} onChange={(e) => setRsvp(g.id, e.target.value as Rsvp)} className="rounded-lg border p-1">
                         <option value="pending">Pending</option>
                         <option value="yes">Yes</option>
                         <option value="no">No</option>

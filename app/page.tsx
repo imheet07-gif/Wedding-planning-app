@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { useWedding } from "@/components/WeddingProvider";
 import { useToast } from "@/components/Toast";
 import { Bar, CountUp } from "@/components/ui";
+import { InstallCard } from "@/components/Install";
 import { inr } from "@/lib/constants";
 import { formatDate } from "@/lib/whatsapp";
 
@@ -103,6 +104,8 @@ export default function Dashboard() {
           </div>
         </div>
       </section>
+
+      <InstallCard />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Tile href="/guests" icon={UsersRound} label="People invited" delay={60}

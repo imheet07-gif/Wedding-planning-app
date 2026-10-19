@@ -10,6 +10,12 @@ export function normalizePhone(raw: string | null, countryCode: string): string 
   return digits.length >= 11 && digits.length <= 15 ? digits : null;
 }
 
+export function timeAgo(iso: string | null): string {
+  if (!iso) return "Never called";
+  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+  return days <= 0 ? "Called today" : days === 1 ? "Called yesterday" : `Called ${days} days ago`;
+}
+
 export function waLink(phone: string, text: string) {
   return `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
 }

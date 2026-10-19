@@ -82,18 +82,18 @@ export default function ListsPage() {
     <div className="space-y-4">
       <div className="space-y-2 card p-3 print:hidden">
         <div className="flex flex-wrap gap-2">
-          <select value={kind} onChange={(e) => setKind(e.target.value as Kind)} className="rounded-lg border p-2">
+          <select aria-label="List type" value={kind} onChange={(e) => setKind(e.target.value as Kind)} className="rounded-lg border p-2">
             <option value="guests">Guest list</option>
             <option value="stay">Accommodation</option>
             <option value="vendors">Vendor contacts</option>
           </select>
           {kind === "guests" && (
             <>
-              <select value={eventId} onChange={(e) => setEventId(e.target.value)} className="rounded-lg border p-2">
+              <select aria-label="Event" value={eventId} onChange={(e) => setEventId(e.target.value)} className="rounded-lg border p-2">
                 <option value="">All guests</option>
                 {events.map((ev) => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
               </select>
-              <select value={side} onChange={(e) => setSide(e.target.value)} className="rounded-lg border p-2">
+              <select aria-label="Side" value={side} onChange={(e) => setSide(e.target.value)} className="rounded-lg border p-2">
                 <option value="">Both sides</option>
                 <option value="bride">Bride</option>
                 <option value="groom">Groom</option>
