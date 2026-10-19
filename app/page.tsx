@@ -84,7 +84,7 @@ export default function Dashboard() {
               <>
                 <p className="mt-2 font-display text-3xl">Set the date to start the countdown</p>
                 {wedding && canEdit && (
-                  <Link href={`/events?id=${wedding.id}`} className="mt-3 inline-flex items-center gap-1 text-sm text-rose-100 underline">
+                  <Link href={`/events?id=${wedding.id}`} className="mt-3 inline-flex items-center gap-1 text-sm text-[#fde8ec] underline">
                     Add the date <ArrowRight size={14} />
                   </Link>
                 )}
@@ -92,7 +92,7 @@ export default function Dashboard() {
             ) : weddingDays >= 0 ? (
               <>
                 <p className="mt-1 font-display text-6xl leading-none lg:text-7xl"><CountUp value={weddingDays} /></p>
-                <p className="mt-2 text-rose-100">{weddingDays === 0 ? "It is today. Congratulations!" : `days to go · ${formatDate(wedding!.event_date)}`}</p>
+                <p className="mt-2 text-[#fde8ec]">{weddingDays === 0 ? "It is today. Congratulations!" : `days to go · ${formatDate(wedding!.event_date)}`}</p>
               </>
             ) : (
               <p className="mt-2 font-display text-3xl">Congratulations!</p>
