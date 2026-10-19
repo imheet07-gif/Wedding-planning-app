@@ -6,6 +6,8 @@ import { useWedding } from "@/components/WeddingProvider";
 import { useToast } from "@/components/Toast";
 import { normalizePhone, waLink } from "@/lib/whatsapp";
 import { LANGS, LANG_LABEL, buildParts, joinParts, parseLangs, templateFor, type Lang } from "@/lib/invites";
+import { NameLangs } from "@/components/NameLangs";
+import { transliterate } from "@/lib/translit";
 import type { Guest, WeddingEvent } from "@/lib/types";
 
 function InviteSender({ ev }: { ev: WeddingEvent }) {
@@ -42,6 +44,22 @@ function InviteSender({ ev }: { ev: WeddingEvent }) {
     .filter((r) => !onlyUnsent || !r.inv.sent_at);
   const missingLangs = langs.filter((l) => l === "gu" || l === "hi");
   const missingNames = rows.filter((r) => missingLangs.some((l) => !(l === "gu" ? r.g.name_gu : r.g.name_hi)?.trim())).length;
+  // Fill every empty spelling with a suggestion (never overwrites one that was typed), then check them below.
+  async function suggestAll() {
+    const todo = rows.map((r) => r.g).filter((g) => (missingLangs.includes("gu") && !g.name_gu?.trim()) || (missingLangs.includes("hi") && !g.name_hi?.trim()));
+    setBusy(true);
+    for (const g of todo) {
+      const patch: Record<string, string> = {};
+      if (!g.name_gu?.trim()) patch.name_gu = transliterate(g.name, "gu");
+      if (!g.name_hi?.trim()) patch.name_hi = transliterate(g.name, "hi");
+      const { error } = await supabase().from("guests").update(patch).eq("id", g.id);
+      if (error) { setErr(error.message); break; }
+    }
+    await refresh();
+    setBusy(false);
+    notify(`Suggested names added for ${todo.length}. Please check them below.`);
+  }
+
   const sentCount = invitations.filter((i) => i.event_id === ev.id && i.sent_at).length;
   const total = invitations.filter((i) => i.event_id === ev.id).length;
 
@@ -148,7 +166,9 @@ function InviteSender({ ev }: { ev: WeddingEvent }) {
       {missingNames > 0 && (
         <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
           {missingNames} {missingNames === 1 ? "guest has" : "guests have"} no {missingLangs.map((l) => LANG_LABEL[l]).join(" / ")} spelling of their name, so the English name is used in that part of the message.
-          {" "}Add them on the <Link href="/guests" className="underline">Guests page</Link> (tap &quot;Name in Gujarati / Hindi&quot; under a guest).
+          {" "}Add them under each guest below (&quot;Name in Gujarati / Hindi&quot;).
+          {canEdit && <button type="button" onClick={suggestAll} disabled={busy} className="mt-2 block min-h-10 rounded-lg bg-amber-700 px-3 text-white disabled:opacity-50">Suggest names for everyone</button>}
+          {canEdit && <span className="mt-1 block text-xs">These are best guesses (done in the app, nothing is sent anywhere). Check each name before sending.</span>}
         </p>
       )}
 
@@ -201,6 +221,7 @@ function InviteSender({ ev }: { ev: WeddingEvent }) {
                   {canEdit && inv.sent_at && <button onClick={() => setSent(g.id, false)} className="text-gray-500 underline">Undo</button>}
                   {canEdit && !inv.sent_at && <button onClick={() => setSent(g.id, true)} className="text-gray-500 underline">Mark sent</button>}
                 </span>
+                <div className="w-full"><NameLangs g={g} canEdit={canEdit} save={(patch) => run(supabase().from("guests").update(patch).eq("id", g.id))} /></div>
               </div>
             );
           })}

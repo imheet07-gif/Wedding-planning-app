@@ -5,27 +5,11 @@ import { supabase } from "@/lib/supabase";
 import { useWedding } from "@/components/WeddingProvider";
 import { useToast } from "@/components/Toast";
 import { EmptyState } from "@/components/ui";
+import { NameLangs } from "@/components/NameLangs";
 import { Check, FileSpreadsheet, Minus, Phone, Plus, Trash2, UsersRound, X } from "lucide-react";
-import type { Guest, Side } from "@/lib/types";
+import type { Side } from "@/lib/types";
 
 const sideLabel: Record<Side, string> = { bride: "Bride", groom: "Groom", both: "Both" };
-
-// Optional spellings used when an invitation is written in Gujarati or Hindi. Blank means the English name is used.
-function NameLangs({ g, canEdit, save }: { g: Guest; canEdit: boolean; save: (patch: { name_gu?: string | null; name_hi?: string | null }) => void }) {
-  const has = !!(g.name_gu || g.name_hi);
-  if (!canEdit && !has) return null;
-  const field = (key: "name_gu" | "name_hi", label: string, lang: string) => (
-    <input aria-label={`${g.name} in ${label}`} lang={lang} placeholder={label} disabled={!canEdit} defaultValue={g[key] ?? ""}
-      onBlur={(e) => e.target.value.trim() !== (g[key] ?? "") && save({ [key]: e.target.value.trim() || null })}
-      className="min-w-0 flex-1 rounded-lg border p-2 text-sm" />
-  );
-  return (
-    <details className="text-xs text-gray-500" open={has && !canEdit}>
-      <summary className="min-h-8 cursor-pointer py-1 text-rose-700 underline">Name in Gujarati / Hindi{has ? " ✓" : ""}</summary>
-      <div className="mt-1 flex gap-2">{field("name_gu", "ગુજરાતી", "gu")}{field("name_hi", "हिन्दी", "hi")}</div>
-    </details>
-  );
-}
 
 export default function GuestsPage() {
   const { guests, events, invitations, canEdit, refresh } = useWedding();
