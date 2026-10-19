@@ -114,9 +114,9 @@ function VendorCard({ v, run }: { v: Vendor; run: (p: PromiseLike<{ error: { mes
             </div>
             {canEdit && (
               <form onSubmit={addPayment} className="mt-2 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-                <input required type="number" min={1} placeholder="Amount ₹" value={pay.amount} onChange={(e) => setPay({ ...pay, amount: e.target.value })} className="min-w-0 rounded-lg border p-2 sm:w-28" />
+                <input aria-label="Amount ₹" required type="number" min={1} placeholder="Amount ₹" value={pay.amount} onChange={(e) => setPay({ ...pay, amount: e.target.value })} className="min-w-0 rounded-lg border p-2 sm:w-28" />
                 <input type="date" aria-label="Due date" value={pay.due_on} onChange={(e) => setPay({ ...pay, due_on: e.target.value })} className="min-w-0 rounded-lg border p-2" />
-                <input placeholder="Label (advance, final…)" value={pay.label} onChange={(e) => setPay({ ...pay, label: e.target.value })} className="col-span-2 min-w-0 rounded-lg border p-2 sm:flex-1" />
+                <input aria-label="Label (advance, final…)" placeholder="Label (advance, final…)" value={pay.label} onChange={(e) => setPay({ ...pay, label: e.target.value })} className="col-span-2 min-w-0 rounded-lg border p-2 sm:flex-1" />
                 <button className="col-span-2 rounded-lg bg-rose-600 px-3 py-2 text-white sm:col-span-1">Add payment</button>
               </form>
             )}
@@ -171,19 +171,19 @@ export default function VendorsPage() {
 
       {canEdit && (
         <form onSubmit={add} className="grid grid-cols-1 gap-2 card p-4 sm:grid-cols-6">
-          <input required placeholder="Vendor name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="rounded-lg border p-2 sm:col-span-2" />
-          <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="rounded-lg border p-2">
+          <input aria-label="Vendor name" required placeholder="Vendor name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="rounded-lg border p-2 sm:col-span-2" />
+          <select aria-label="Category" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="rounded-lg border p-2">
             {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
           </select>
-          <input placeholder="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="rounded-lg border p-2" />
-          <input type="number" min={0} placeholder="Quote ₹" value={form.quote} onChange={(e) => setForm({ ...form, quote: e.target.value })} className="rounded-lg border p-2" />
+          <input aria-label="Phone" placeholder="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="rounded-lg border p-2" />
+          <input aria-label="Quote ₹" type="number" min={0} placeholder="Quote ₹" value={form.quote} onChange={(e) => setForm({ ...form, quote: e.target.value })} className="rounded-lg border p-2" />
           <button className="rounded-lg bg-rose-600 p-2 text-white">Add vendor</button>
         </form>
       )}
 
       {err && <p className="text-sm text-red-600">{err}</p>}
 
-      <select value={filter} onChange={(e) => setFilter(e.target.value)} className="rounded-lg border bg-white p-2">
+      <select aria-label="Filter by category" value={filter} onChange={(e) => setFilter(e.target.value)} className="rounded-lg border bg-white p-2">
         <option value="">All categories</option>
         {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
       </select>

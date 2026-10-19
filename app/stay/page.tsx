@@ -102,14 +102,14 @@ export default function StayPage() {
         {canEdit && (
           <div className="space-y-2 card p-3">
             <div className="flex flex-wrap gap-2">
-              <select value={pick} onChange={(e) => setPick(e.target.value)} className="min-w-0 flex-1 rounded-lg border p-2">
+              <select aria-label="Guest to add" value={pick} onChange={(e) => setPick(e.target.value)} className="min-w-0 flex-1 rounded-lg border p-2">
                 <option value="">Add a guest…</option>
                 {needing.map((g) => <option key={g.id} value={g.id}>{g.name} ({g.headcount})</option>)}
               </select>
               <button onClick={addGuest} className="rounded-lg bg-rose-600 px-3 py-2 text-white">Add</button>
             </div>
             <div className="flex flex-wrap gap-2">
-              <select value={pickEvent} onChange={(e) => setPickEvent(e.target.value)} className="min-w-0 flex-1 rounded-lg border p-2">
+              <select aria-label="Add everyone invited to an event" value={pickEvent} onChange={(e) => setPickEvent(e.target.value)} className="min-w-0 flex-1 rounded-lg border p-2">
                 <option value="">Add everyone invited to…</option>
                 {events.map((ev) => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
               </select>
@@ -117,8 +117,8 @@ export default function StayPage() {
             </div>
             <div className="flex flex-wrap items-center gap-2 text-sm">
               <span className="text-gray-500">Set dates for everyone without dates:</span>
-              <input type="date" value={bulkDates.check_in} onChange={(e) => setBulkDates({ ...bulkDates, check_in: e.target.value })} className="rounded-lg border p-1" />
-              <input type="date" value={bulkDates.check_out} onChange={(e) => setBulkDates({ ...bulkDates, check_out: e.target.value })} className="rounded-lg border p-1" />
+              <input aria-label="Check-in date for everyone without dates" type="date" value={bulkDates.check_in} onChange={(e) => setBulkDates({ ...bulkDates, check_in: e.target.value })} className="rounded-lg border p-1" />
+              <input aria-label="Check-out date for everyone without dates" type="date" value={bulkDates.check_out} onChange={(e) => setBulkDates({ ...bulkDates, check_out: e.target.value })} className="rounded-lg border p-1" />
               <button onClick={applyDates} className="rounded-lg border px-3 py-1">Apply</button>
             </div>
           </div>
@@ -151,7 +151,7 @@ export default function StayPage() {
                 </label>
                 <label className="sm:col-span-2">
                   <span className="text-gray-500">Room</span>
-                  <select disabled={!canEdit} value={s.room_id ?? ""} onChange={(e) => patch(s.id, { room_id: e.target.value || null })} className="mt-1 w-full rounded-lg border p-2">
+                  <select aria-label={`Room for ${g?.name}`} disabled={!canEdit} value={s.room_id ?? ""} onChange={(e) => patch(s.id, { room_id: e.target.value || null })} className="mt-1 w-full rounded-lg border p-2">
                     <option value="">Not placed yet</option>
                     {properties.map((p) => (
                       <optgroup key={p.id} label={p.name}>
@@ -176,8 +176,8 @@ export default function StayPage() {
             run(supabase().from("properties").insert({ name: propForm.name.trim(), address: propForm.address.trim() || null }));
             setPropForm({ name: "", address: "" });
           }}>
-            <input required placeholder="Hotel or guesthouse name" value={propForm.name} onChange={(e) => setPropForm({ ...propForm, name: e.target.value })} className="min-w-0 flex-1 rounded-lg border p-2" />
-            <input placeholder="Address (optional)" value={propForm.address} onChange={(e) => setPropForm({ ...propForm, address: e.target.value })} className="min-w-0 flex-1 rounded-lg border p-2" />
+            <input aria-label="Hotel or guesthouse name" required placeholder="Hotel or guesthouse name" value={propForm.name} onChange={(e) => setPropForm({ ...propForm, name: e.target.value })} className="min-w-0 flex-1 rounded-lg border p-2" />
+            <input aria-label="Address (optional)" placeholder="Address (optional)" value={propForm.address} onChange={(e) => setPropForm({ ...propForm, address: e.target.value })} className="min-w-0 flex-1 rounded-lg border p-2" />
             <button className="rounded-lg bg-rose-600 px-3 py-2 text-white">Add</button>
           </form>
         )}
@@ -204,8 +204,8 @@ export default function StayPage() {
               </div>
               {canEdit && (
                 <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <input type="number" min={1} placeholder="How many rooms" value={f.count} onChange={(e) => setRoomForm({ ...roomForm, [p.id]: { ...f, count: e.target.value } })} className="w-32 rounded-lg border p-2" />
-                  <input type="number" min={1} placeholder="Sleeps" value={f.capacity} onChange={(e) => setRoomForm({ ...roomForm, [p.id]: { ...f, capacity: e.target.value } })} className="w-24 rounded-lg border p-2" />
+                  <input aria-label="How many rooms" type="number" min={1} placeholder="How many rooms" value={f.count} onChange={(e) => setRoomForm({ ...roomForm, [p.id]: { ...f, count: e.target.value } })} className="w-32 rounded-lg border p-2" />
+                  <input aria-label="Sleeps" type="number" min={1} placeholder="Sleeps" value={f.capacity} onChange={(e) => setRoomForm({ ...roomForm, [p.id]: { ...f, capacity: e.target.value } })} className="w-24 rounded-lg border p-2" />
                   <button onClick={() => addRooms(p.id)} className="rounded-lg border px-3 py-2">Add rooms</button>
                 </div>
               )}

@@ -3,12 +3,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
-  BedDouble, CalendarHeart, ClipboardList, Heart, LayoutDashboard, ListChecks, MoreHorizontal, Printer,
+  BedDouble, CalendarHeart, ClipboardList, Heart, LayoutDashboard, ListChecks, MoreHorizontal, Phone, Printer,
   Send, Store, UsersRound, Wallet, X, LogOut, type LucideIcon,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useWedding } from "./WeddingProvider";
 import { PageSkeleton } from "./ui";
+import { TextSize } from "./TextSize";
 
 type Item = { href: string; label: string; hint: string; icon: LucideIcon };
 
@@ -20,6 +21,7 @@ const GROUPS: { title: string; items: Item[] }[] = [
       { href: "/guests", label: "Guests", hint: "Everyone invited, and who is coming", icon: UsersRound },
       { href: "/events", label: "Events", hint: "Dates, venues and RSVPs", icon: CalendarHeart },
       { href: "/invites", label: "Invites", hint: "Send invitations on WhatsApp", icon: Send },
+      { href: "/calls", label: "Follow up", hint: "Call guests who have not answered yet", icon: Phone },
       { href: "/lists", label: "Lists", hint: "Print or share lists", icon: Printer },
     ],
   },
@@ -121,6 +123,7 @@ function NavLink({ item, active, onClick }: { item: Item; active: boolean; onCli
     <Link
       href={item.href}
       onClick={onClick}
+      aria-current={active ? "page" : undefined}
       className={`group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium ${active ? "bg-rose-600 text-white shadow-sm" : "text-gray-700 hover:bg-rose-50 hover:text-rose-800"}`}
     >
       <Icon size={18} className={active ? "" : "text-gray-400 group-hover:text-rose-600"} />
@@ -135,6 +138,12 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const [more, setMore] = useState(false);
 
   useEffect(() => setMore(false), [path]);
+  useEffect(() => {
+    if (!more) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setMore(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [more]);
 
   // Public page, so it can be linked from the Google sign-in consent screen.
   if (path === "/privacy") return <>{children}</>;
@@ -171,6 +180,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen lg:pl-64">
+      <a href="#main" className="sr-only z-50 rounded-lg bg-white px-4 py-2 text-rose-800 shadow focus:not-sr-only focus:fixed focus:left-4 focus:top-4">Skip to content</a>
       {/* Desktop sidebar */}
       <aside className="fixed inset-y-0 left-0 hidden w-64 flex-col border-r bg-white px-3 py-5 lg:flex print:hidden">
         <div className="mb-6 px-3"><Brand /></div>
@@ -182,7 +192,8 @@ export function Shell({ children }: { children: React.ReactNode }) {
             </div>
           ))}
         </nav>
-        <div className="mt-3 flex items-center gap-3 border-t px-3 pt-4">
+        <div className="mt-3 border-t px-3 pt-3"><TextSize /></div>
+        <div className="flex items-center gap-3 px-3 pt-3">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-rose-100 font-medium text-rose-700">{initial}</span>
           <span className="min-w-0 flex-1 text-xs">
             <span className="block truncate text-gray-700">{email}</span>
@@ -200,14 +211,14 @@ export function Shell({ children }: { children: React.ReactNode }) {
         <span className="flex h-8 w-8 items-center justify-center rounded-full bg-rose-100 text-sm font-medium text-rose-700">{initial}</span>
       </header>
 
-      <main className="mx-auto max-w-5xl overflow-x-hidden px-4 pb-28 pt-5 lg:px-8 lg:pb-12 lg:pt-8">
+      <main id="main" tabIndex={-1} className="mx-auto max-w-5xl overflow-x-hidden px-4 pb-28 pt-5 outline-none lg:px-8 lg:pb-12 lg:pt-8">
         {current && (
           <div className="mb-5 print:hidden">
             <h1 className="font-display text-3xl text-gray-900">{current.label}</h1>
             <p className="text-sm text-gray-500">{current.hint}</p>
           </div>
         )}
-        {error && <p className="card mb-4 border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+        {error && <p role="alert" className="card mb-4 border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
         {me && !canEdit && (
           <p className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
             You have view-only access. Ask an editor to upgrade you on the Family page.
@@ -235,12 +246,12 @@ export function Shell({ children }: { children: React.ReactNode }) {
       </nav>
 
       {more && (
-        <div className="fixed inset-0 z-40 lg:hidden print:hidden" role="dialog" aria-modal="true">
+        <div className="fixed inset-0 z-40 lg:hidden print:hidden" role="dialog" aria-modal="true" aria-label="More">
           <button aria-label="Close" className="absolute inset-0 bg-black/40" onClick={() => setMore(false)} />
           <div className="absolute inset-x-0 bottom-0 animate-sheet rounded-t-2xl bg-white p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-2xl">
             <div className="mb-3 flex items-center justify-between">
               <span className="font-display text-lg">More</span>
-              <button onClick={() => setMore(false)} className="rounded-full p-2 text-gray-500 hover:bg-gray-100"><X size={18} /></button>
+              <button onClick={() => setMore(false)} aria-label="Close menu" className="flex h-10 w-10 items-center justify-center rounded-full text-gray-500 hover:bg-gray-100"><X size={18} aria-hidden /></button>
             </div>
             <div className="grid grid-cols-3 gap-2">
               {moreItems.map((i) => {
@@ -257,7 +268,8 @@ export function Shell({ children }: { children: React.ReactNode }) {
                 Import
               </Link>
             </div>
-            <div className="mt-4 flex items-center justify-between border-t pt-3 text-sm">
+            <div className="mt-4 border-t pt-3"><TextSize /></div>
+            <div className="mt-3 flex items-center justify-between border-t pt-3 text-sm">
               <span className="min-w-0 truncate text-gray-500">{email} · {role}</span>
               <button onClick={() => supabase().auth.signOut()} className="shrink-0 text-rose-700 underline">Sign out</button>
             </div>

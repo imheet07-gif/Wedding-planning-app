@@ -42,7 +42,7 @@ export default function FamilyPage() {
         {profiles.filter((p) => p.role !== "pending").map((p) => (
           <div key={p.id} className="flex items-center justify-between border-b p-3 last:border-b-0">
             <span>{p.email}{p.id === me?.id && " (you)"}</span>
-            <select disabled={!canEdit || p.id === me?.id} value={p.role} onChange={(e) => setRole(p.id, e.target.value as Role)} className="rounded-lg border p-1">
+            <select aria-label={`Access for ${p.email}`} disabled={!canEdit || p.id === me?.id} value={p.role} onChange={(e) => setRole(p.id, e.target.value as Role)} className="rounded-lg border p-1">
               <option value="editor">Editor</option>
               <option value="viewer">Viewer</option>
               <option value="pending">Remove access</option>

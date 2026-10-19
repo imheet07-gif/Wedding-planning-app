@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { useWedding } from "@/components/WeddingProvider";
 import { useToast } from "@/components/Toast";
 import { EmptyState } from "@/components/ui";
-import { Check, FileSpreadsheet, Minus, Plus, Trash2, UsersRound, X } from "lucide-react";
+import { Check, FileSpreadsheet, Minus, Phone, Plus, Trash2, UsersRound, X } from "lucide-react";
 import type { Side } from "@/lib/types";
 
 const sideLabel: Record<Side, string> = { bride: "Bride", groom: "Groom", both: "Both" };
@@ -104,20 +104,20 @@ export default function GuestsPage() {
         <div className={`grid-cols-1 gap-4 md:grid md:grid-cols-2 ${showAdd ? "grid" : "hidden"}`}>
           <form onSubmit={addGuest} className="space-y-2 card p-4">
             <h2 className="font-semibold">Add guest or family</h2>
-            <input required placeholder="Name (e.g. Sharma family)" value={form.name}
+            <input aria-label="Name (e.g. Sharma family)" required placeholder="Name (e.g. Sharma family)" value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full rounded-lg border p-2" />
             <div className="flex gap-2">
-              <select value={form.side} onChange={(e) => setForm({ ...form, side: e.target.value as Side })} className="rounded-lg border p-2">
+              <select aria-label="Side" value={form.side} onChange={(e) => setForm({ ...form, side: e.target.value as Side })} className="rounded-lg border p-2">
                 {Object.entries(sideLabel).map(([k, v]) => <option key={k} value={k}>{v} side</option>)}
               </select>
-              <input type="number" min={1} value={form.headcount} title="Number of people"
+              <input aria-label="Number of people" type="number" min={1} value={form.headcount} title="Number of people"
                 onChange={(e) => setForm({ ...form, headcount: Math.max(1, +e.target.value) })} className="w-20 rounded-lg border p-2" />
-              <input placeholder="Group" value={form.grp}
+              <input aria-label="Group" placeholder="Group" value={form.grp}
                 onChange={(e) => setForm({ ...form, grp: e.target.value })} className="min-w-0 flex-1 rounded-lg border p-2" />
             </div>
             <div className="flex gap-2">
-              <input placeholder="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="min-w-0 flex-1 rounded-lg border p-2" />
-              <input placeholder="Diet (Jain, veg…)" value={form.diet} onChange={(e) => setForm({ ...form, diet: e.target.value })} className="min-w-0 flex-1 rounded-lg border p-2" />
+              <input aria-label="Phone" placeholder="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="min-w-0 flex-1 rounded-lg border p-2" />
+              <input aria-label="Diet (Jain, veg…)" placeholder="Diet (Jain, veg…)" value={form.diet} onChange={(e) => setForm({ ...form, diet: e.target.value })} className="min-w-0 flex-1 rounded-lg border p-2" />
             </div>
             <button className="rounded-lg bg-rose-600 px-4 py-2 text-white">Add</button>
           </form>
@@ -125,9 +125,9 @@ export default function GuestsPage() {
           <div className="space-y-2 card p-4">
             <h2 className="font-semibold">Paste many</h2>
             <p className="text-sm text-gray-500">One per line. Add a count after a comma, e.g. “Sharma family, 5”.</p>
-            <textarea rows={4} value={bulk} onChange={(e) => setBulk(e.target.value)} className="w-full rounded-lg border p-2" />
+            <textarea aria-label="Guests to add, one per line" rows={4} value={bulk} onChange={(e) => setBulk(e.target.value)} className="w-full rounded-lg border p-2" />
             <div className="flex gap-2">
-              <select value={bulkSide} onChange={(e) => setBulkSide(e.target.value as Side)} className="rounded-lg border p-2">
+              <select aria-label="Side for pasted guests" value={bulkSide} onChange={(e) => setBulkSide(e.target.value as Side)} className="rounded-lg border p-2">
                 {Object.entries(sideLabel).map(([k, v]) => <option key={k} value={k}>{v} side</option>)}
               </select>
               <button onClick={addBulk} className="rounded-lg bg-rose-600 px-4 py-2 text-white">Add all</button>
@@ -139,14 +139,14 @@ export default function GuestsPage() {
       {err && <p className="text-sm text-red-600">{err}</p>}
 
       <div className="space-y-2">
-        <input placeholder="Search guests" value={search} onChange={(e) => setSearch(e.target.value)} className="w-full rounded-lg border p-2.5" />
+        <input aria-label="Search guests" placeholder="Search guests" value={search} onChange={(e) => setSearch(e.target.value)} className="w-full rounded-lg border p-2.5" />
         <div className="grid grid-cols-2 gap-2 sm:flex">
-          <select value={sideFilter} onChange={(e) => setSideFilter(e.target.value)} className="rounded-lg border p-2.5">
+          <select aria-label="Filter by side" value={sideFilter} onChange={(e) => setSideFilter(e.target.value)} className="rounded-lg border p-2.5">
             <option value="">Both sides</option>
             <option value="bride">Bride</option>
             <option value="groom">Groom</option>
           </select>
-          <select value={eventFilter} onChange={(e) => setEventFilter(e.target.value)} className="rounded-lg border p-2.5">
+          <select aria-label="Filter by event" value={eventFilter} onChange={(e) => setEventFilter(e.target.value)} className="rounded-lg border p-2.5">
             <option value="">All events</option>
             {events.map((ev) => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
           </select>
@@ -183,7 +183,11 @@ export default function GuestsPage() {
               <div className="min-w-0">
                 <p className="font-medium">{g.name}</p>
                 <p className="text-xs text-gray-500">{[sideLabel[g.side] + " side", g.grp, g.diet].filter(Boolean).join(" · ")}</p>
-                {g.phone && <p className="mt-0.5 text-xs text-gray-500">{g.phone}</p>}
+                {g.phone && (
+                  <a href={`tel:${g.phone.replace(/[^\d+]/g, "")}`} className="mt-1 inline-flex min-h-8 items-center gap-1 text-xs text-rose-700 underline">
+                    <Phone size={12} aria-hidden />{g.phone}
+                  </a>
+                )}
               </div>
               {canEdit && (
                 <button aria-label={`Delete ${g.name}`} className="shrink-0 rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-600"
@@ -236,7 +240,7 @@ export default function GuestsPage() {
                     )}
                   </th>
                 ))}
-                {canEdit && <th />}
+                {canEdit && <th><span className="sr-only">Actions</span></th>}
               </tr>
             </thead>
             <tbody>
@@ -249,14 +253,14 @@ export default function GuestsPage() {
                   <td className="p-2">{sideLabel[g.side]}</td>
                   <td className="p-2">
                     {canEdit ? (
-                      <input type="number" min={1} defaultValue={g.headcount} className="w-16 rounded-lg border p-1"
+                      <input aria-label={`People in ${g.name}`} type="number" min={1} defaultValue={g.headcount} className="w-16 rounded-lg border p-1"
                         onBlur={(e) => +e.target.value >= 1 && +e.target.value !== g.headcount &&
                           run(supabase().from("guests").update({ headcount: +e.target.value }).eq("id", g.id))} />
                     ) : g.headcount}
                   </td>
                   {events.map((ev) => (
                     <td key={ev.id} className="p-2 text-center">
-                      <input type="checkbox" disabled={!canEdit} checked={invited.get(g.id)?.has(ev.id) ?? false}
+                      <input aria-label={`${g.name} invited to ${ev.name}`} type="checkbox" disabled={!canEdit} checked={invited.get(g.id)?.has(ev.id) ?? false}
                         onChange={(e) => toggleEvent(g.id, ev.id, e.target.checked)} />
                     </td>
                   ))}

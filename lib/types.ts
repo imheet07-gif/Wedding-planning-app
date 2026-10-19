@@ -23,6 +23,8 @@ export type Guest = {
   phone: string | null;
   diet: string | null;
   notes: string | null;
+  last_called_at: string | null;
+  call_note: string | null;
 };
 
 export type Invitation = { guest_id: string; event_id: string; rsvp: Rsvp; sent_at: string | null };

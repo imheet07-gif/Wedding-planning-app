@@ -86,7 +86,7 @@ function InviteSender({ ev }: { ev: WeddingEvent }) {
         <p className="text-sm text-gray-500">
           Use {"{name}"}, {"{event}"}, {"{date}"}, {"{time}"} and {"{venue}"}. They are filled in for each guest.
         </p>
-        <textarea rows={6} disabled={!canEdit} value={template} onChange={(e) => setTemplate(e.target.value)} className="w-full rounded-lg border p-2" />
+        <textarea aria-label="Invite message" rows={6} disabled={!canEdit} value={template} onChange={(e) => setTemplate(e.target.value)} className="w-full rounded-lg border p-2" />
         {canEdit && (
           <button onClick={() => run(supabase().from("events").update({ invite_text: template }).eq("id", ev.id))} className="rounded-lg bg-rose-600 px-3 py-2 text-white">
             Save message
@@ -106,7 +106,7 @@ function InviteSender({ ev }: { ev: WeddingEvent }) {
           <p className="text-gray-500">None. The message goes out as text only.</p>
         )}
         {canEdit && (
-          <input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" disabled={busy}
+          <input aria-label="Upload invite image or PDF" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" disabled={busy}
             onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])} />
         )}
         <p className="text-gray-500">
@@ -137,9 +137,10 @@ function InviteSender({ ev }: { ev: WeddingEvent }) {
                   </span>
                 </span>
                 <span className="flex flex-wrap items-center gap-2">
-                  <button onClick={() => send(g)} disabled={!phone} className="rounded-lg bg-green-600 px-3 py-1.5 text-white disabled:opacity-40">
+                  <button onClick={() => send(g)} disabled={!phone} className="rounded-lg bg-green-700 px-3 py-1.5 text-white disabled:opacity-40">
                     {inv.sent_at ? "Send again" : "Send on WhatsApp"}
                   </button>
+                  {phone && <a href={`tel:+${phone}`} className="rounded-lg border px-3 py-1.5 text-sm" aria-label={`Call ${g.name}`}>Call</a>}
                   {media && <button onClick={() => shareFile(g)} className="rounded-lg border px-3 py-1.5">Share file</button>}
                   {canEdit && inv.sent_at && <button onClick={() => setSent(g.id, false)} className="text-gray-500 underline">Undo</button>}
                   {canEdit && !inv.sent_at && <button onClick={() => setSent(g.id, true)} className="text-gray-500 underline">Mark sent</button>}
@@ -166,7 +167,7 @@ export default function InvitesPage() {
         The app cannot tell whether you actually sent it, so check before moving on.
       </p>
       <div className="flex flex-wrap items-center gap-3">
-        <select value={eventId} onChange={(e) => setEventId(e.target.value)} className="rounded-lg border bg-white p-2">
+        <select aria-label="Event" value={eventId} onChange={(e) => setEventId(e.target.value)} className="rounded-lg border bg-white p-2">
           <option value="">Choose an event…</option>
           {events.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
         </select>

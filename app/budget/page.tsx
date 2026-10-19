@@ -76,7 +76,7 @@ export default function BudgetPage() {
                 <td className="p-1.5 sm:p-2">{r.category}</td>
                 <td className="p-1.5 sm:p-2">
                   {canEdit ? (
-                    <input type="number" min={0} defaultValue={r.planned || ""} className="w-20 rounded-lg border p-1 sm:w-28"
+                    <input aria-label={`Planned amount for ${r.category}`} type="number" min={0} defaultValue={r.planned || ""} className="w-20 rounded-lg border p-1 sm:w-28"
                       onBlur={(e) => (+e.target.value || 0) !== r.planned &&
                         run(supabase().from("budget_categories").upsert({ category: r.category, planned: +e.target.value || 0 }))} />
                   ) : inr(r.planned)}
@@ -95,13 +95,13 @@ export default function BudgetPage() {
         <h2 className="font-semibold">Other expenses</h2>
         {canEdit && (
           <form onSubmit={addExpense} className="grid grid-cols-1 gap-2 card p-4 sm:grid-cols-5">
-            <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="rounded-lg border p-2">
+            <select aria-label="Category" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="rounded-lg border p-2">
               {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
             </select>
-            <input required placeholder="What (bride lehenga…)" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="rounded-lg border p-2 sm:col-span-2" />
-            <input required type="number" min={0} placeholder="Amount ₹" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} className="rounded-lg border p-2" />
+            <input aria-label="What (bride lehenga…)" required placeholder="What (bride lehenga…)" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="rounded-lg border p-2 sm:col-span-2" />
+            <input aria-label="Amount ₹" required type="number" min={0} placeholder="Amount ₹" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} className="rounded-lg border p-2" />
             <button className="rounded-lg bg-rose-600 p-2 text-white">Add</button>
-            <select value={form.event_id} onChange={(e) => setForm({ ...form, event_id: e.target.value })} className="rounded-lg border p-2 sm:col-span-2">
+            <select aria-label="Event (optional)" value={form.event_id} onChange={(e) => setForm({ ...form, event_id: e.target.value })} className="rounded-lg border p-2 sm:col-span-2">
               <option value="">No specific event</option>
               {events.map((ev) => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
             </select>
@@ -116,7 +116,7 @@ export default function BudgetPage() {
               <span className="flex items-center gap-3">
                 {inr(x.amount)}
                 <label className="flex items-center gap-1 text-gray-600">
-                  <input type="checkbox" disabled={!canEdit} checked={x.paid} onChange={(e) => run(supabase().from("expenses").update({ paid: e.target.checked }).eq("id", x.id))} /> paid
+                  <input aria-label={`Paid: ${x.description}`} type="checkbox" disabled={!canEdit} checked={x.paid} onChange={(e) => run(supabase().from("expenses").update({ paid: e.target.checked }).eq("id", x.id))} /> paid
                 </label>
                 {canEdit && <button className="text-red-600" onClick={() => run(supabase().from("expenses").delete().eq("id", x.id))}>Delete</button>}
               </span>
