@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { useWedding } from "@/components/WeddingProvider";
 import { useToast } from "@/components/Toast";
 import { Bar, CountUp } from "@/components/ui";
-import { Arch } from "@/components/Couple";
+import { HeroBackdrop } from "@/components/Couple";
 import { parseFocus } from "@/lib/image";
 import { InstallCard } from "@/components/Install";
 import { inr } from "@/lib/constants";
@@ -80,10 +80,11 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <section className="hero animate-fade-up relative overflow-hidden rounded-2xl p-6 text-white shadow-card lg:p-8">
-        <div className="flex items-center justify-between gap-4">
+      <section className={`hero animate-fade-up relative overflow-hidden rounded-2xl p-6 text-white shadow-card lg:p-8 ${photo ? "flex min-h-[28rem] flex-col justify-end lg:min-h-[18rem] lg:justify-center" : ""}`}>
+        {photo && <HeroBackdrop url={photo} focus={parseFocus(settings.couple_photo_focus)} />}
+        <div className={`relative flex items-center justify-between gap-4 ${photo ? "[text-shadow:0_1px_14px_rgb(0_0_0/0.4)]" : ""}`}>
           <div className="min-w-0">
-            <p className="text-sm uppercase tracking-widest text-gold-400">{wedding?.name ?? "The big day"}</p>
+            <p className={`text-sm uppercase tracking-widest ${photo ? "text-[#f6dc92]" : "text-gold-400"}`}>{wedding?.name ?? "The big day"}</p>
             {names && <h2 className="mt-1 font-display text-2xl leading-tight lg:text-3xl">{names}</h2>}
             {weddingDays === null ? (
               <>
@@ -103,9 +104,8 @@ export default function Dashboard() {
               <p className="mt-2 font-display text-3xl">Congratulations!</p>
             )}
           </div>
-          {photo && <Arch url={photo} focus={parseFocus(settings.couple_photo_focus)} alt={names ? `${names}` : "The couple"} />}
         </div>
-        <div className="mt-5 flex flex-wrap items-center gap-2">
+        <div className="relative mt-5 flex flex-wrap items-center gap-2">
           <Link href="/guests" className="rounded-lg bg-white/15 px-3 py-2 text-sm backdrop-blur hover:bg-white/25">Guests</Link>
           <Link href="/invites" className="rounded-lg bg-white px-3 py-2 text-sm font-medium text-rose-800 hover:bg-rose-50">Send invites</Link>
           {canEdit && !photo && <Link href="/settings" className="px-2 py-2 text-xs text-[#f9ccd6] underline">Add your photo</Link>}

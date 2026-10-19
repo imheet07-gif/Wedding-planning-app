@@ -5,7 +5,7 @@ import { useWedding } from "@/components/WeddingProvider";
 import { useToast } from "@/components/Toast";
 import { TextSize } from "@/components/TextSize";
 import { ThemePicker } from "@/components/Theme";
-import { Arch } from "@/components/Couple";
+import { HeroBackdrop } from "@/components/Couple";
 import { parseFocus, shrinkImage } from "@/lib/image";
 
 export default function SettingsPage() {
@@ -65,23 +65,34 @@ export default function SettingsPage() {
     <div className="max-w-xl space-y-4">
       <section className="card space-y-3 p-4">
         <h2 className="font-display text-lg">Our photo</h2>
-        <p className="text-sm text-gray-600">Appears on the dashboard banner for everyone in the family. {canEdit ? "A portrait photo with both of you near the top works best." : "Only editors can change it."}</p>
+        <p className="text-sm text-gray-600">Appears on the dashboard banner for everyone in the family. {canEdit ? "It becomes the backdrop of the banner. Both of you in the upper part of the photo works best." : "Only editors can change it."}</p>
         <label className="block text-sm">
           <span className="text-gray-600">Names on the banner</span>
           <input defaultValue={settings.couple_names ?? ""} disabled={!canEdit} placeholder="Aanya & Rohan" maxLength={60} aria-label="Names on the banner"
             className="mt-1 w-full rounded-lg border p-2.5" onBlur={(e) => e.target.value.trim() !== (settings.couple_names ?? "") && save("couple_names", e.target.value.trim(), "Names saved")} />
         </label>
-        <div className="flex items-start gap-4">
-          <div className="hero rounded-2xl p-3">
-            {photo ? <Arch url={photo} focus={crop} alt="Preview of your photo" className="w-24" /> : <div className="flex aspect-[3/4] w-24 items-center justify-center rounded-t-full rounded-b-3xl border border-dashed border-white/40 px-2 text-center text-xs text-[#f9ccd6]">No photo yet</div>}
-          </div>
+        <div className="space-y-3">
+          {([["Phone", "aspect-[7/8] w-44", "stacked"], ["Laptop", "aspect-[3/1] w-full max-w-sm", "wide"]] as const).map(([label, size, mode]) => (
+            <div key={label}>
+              <p className="mb-1 text-xs text-gray-500">{label}</p>
+              <div className={`hero relative overflow-hidden rounded-2xl text-white shadow-card ${size} ${mode === "stacked" ? "flex flex-col justify-end p-3" : "flex flex-col justify-center p-4"}`}>
+                {photo && <HeroBackdrop url={photo} focus={crop} mode={mode} />}
+                <div className="relative [text-shadow:0_1px_10px_rgb(0_0_0/0.4)]">
+                  <p className="text-[9px] uppercase tracking-widest text-gold-400">Wedding day</p>
+                  <p className="font-display text-sm leading-tight">{settings.couple_names || "Aanya & Rohan"}</p>
+                  <p className="font-display text-xl leading-none">121 <span className="font-sans text-[9px]">days to go</span></p>
+                </div>
+              </div>
+            </div>
+          ))}
           {canEdit && (
-            <div className="min-w-0 flex-1 space-y-3 text-sm">
+            <div className="space-y-3 text-sm">
               <input type="file" accept="image/jpeg,image/png,image/webp" disabled={busy} aria-label={photo ? "Choose a different photo" : "Choose a photo"}
                 onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])} className="w-full" />
               {busy && <p className="text-gray-500">Uploading…</p>}
               {photo && (
                 <>
+                  <p className="text-gray-600">The photo is cropped to fit, differently on phone and laptop. Move these until both previews look right.</p>
                   {(["Left to right", "Top to bottom"] as const).map((label, i) => (
                     <label key={label} className="block">
                       <span className="text-gray-600">{label}</span>
