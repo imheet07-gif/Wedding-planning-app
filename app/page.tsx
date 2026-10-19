@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { useWedding } from "@/components/WeddingProvider";
 import { useToast } from "@/components/Toast";
 import { Bar, CountUp } from "@/components/ui";
-import { HeroBackdrop } from "@/components/Couple";
+import { HeroPhoto } from "@/components/Couple";
 import { parseFocus } from "@/lib/image";
 import { InstallCard } from "@/components/Install";
 import { inr } from "@/lib/constants";
@@ -80,11 +80,12 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <section className={`hero animate-fade-up relative overflow-hidden rounded-2xl p-6 text-white shadow-card lg:p-8 ${photo ? "flex min-h-[28rem] flex-col justify-end lg:min-h-[18rem] lg:justify-center" : ""}`}>
-        {photo && <HeroBackdrop url={photo} focus={parseFocus(settings.couple_photo_focus)} />}
-        <div className={`relative flex items-center justify-between gap-4 ${photo ? "[text-shadow:0_1px_14px_rgb(0_0_0/0.4)]" : ""}`}>
+      <section className={`hero animate-fade-up relative overflow-hidden rounded-2xl text-white shadow-card ${photo ? "flex flex-col lg:min-h-[19rem]" : "p-6 lg:p-8"}`}>
+        {photo && <HeroPhoto url={photo} focus={parseFocus(settings.couple_photo_focus)} />}
+        <div className={photo ? "relative -mt-1 px-6 pb-6 lg:mt-0 lg:flex lg:max-w-[44%] lg:flex-col lg:justify-center lg:p-8" : ""}>
+        <div className="flex items-center justify-between gap-4">
           <div className="min-w-0">
-            <p className={`text-sm uppercase tracking-widest ${photo ? "text-[#f6dc92]" : "text-gold-400"}`}>{wedding?.name ?? "The big day"}</p>
+            <p className="text-sm uppercase tracking-widest text-[#f0cf75]">{wedding?.name ?? "The big day"}</p>
             {names && <h2 className="mt-1 font-display text-2xl leading-tight lg:text-3xl">{names}</h2>}
             {weddingDays === null ? (
               <>
@@ -109,6 +110,7 @@ export default function Dashboard() {
           <Link href="/guests" className="rounded-lg bg-white/15 px-3 py-2 text-sm backdrop-blur hover:bg-white/25">Guests</Link>
           <Link href="/invites" className="rounded-lg bg-white px-3 py-2 text-sm font-medium text-rose-800 hover:bg-rose-50">Send invites</Link>
           {canEdit && !photo && <Link href="/settings" className="px-2 py-2 text-xs text-[#f9ccd6] underline">Add your photo</Link>}
+        </div>
         </div>
       </section>
 
