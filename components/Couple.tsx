@@ -11,40 +11,11 @@ export const SHAPES = {
 export type Shape = keyof typeof SHAPES;
 export const parseShape = (v: string | undefined): Shape => (v === "wide" || v === "tall" ? v : "square");
 
-// Average colour of a strip of the photo, used to warm the wine panel next to it so the two feel like one piece.
-// Reading pixels needs the image host to allow it; if it does not, there is simply no glow.
-function sampleEdges(url: string): Promise<{ bottom: string; left: string } | null> {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.onload = () => {
-      try {
-        const c = document.createElement("canvas");
-        c.width = c.height = 24;
-        const x = c.getContext("2d", { willReadFrequently: true })!;
-        x.drawImage(img, 0, 0, 24, 24);
-        const avg = (x0: number, y0: number, w: number, h: number) => {
-          const d = x.getImageData(x0, y0, w, h).data;
-          let r = 0, g = 0, b = 0;
-          for (let i = 0; i < d.length; i += 4) { r += d[i]; g += d[i + 1]; b += d[i + 2]; }
-          const n = d.length / 4;
-          return `rgb(${Math.round(r / n)} ${Math.round(g / n)} ${Math.round(b / n)} / 0.42)`;
-        };
-        resolve({ bottom: avg(0, 18, 24, 6), left: avg(0, 0, 6, 24) });
-      } catch {
-        resolve(null);
-      }
-    };
-    img.onerror = () => resolve(null);
-    img.src = url;
-  });
-}
-
 type Mode = "auto" | "stacked" | "wide";
 
-// The couple photo with the wine text panel laid over its edge: on phones the panel rises over the bottom of
-// the photo with a curved top, on laptops it curves over the photo's left side. The photo is never tinted.
-// It drifts slowly, shifts a little as you scroll, glows into the panel, and opens full-size when tapped.
+// The couple photo melting into its own blurred, darkened copy: the words sit on that soft backdrop (below the
+// photo on phones, left of it on laptops), so there is no solid block. The faces are never tinted or covered.
+// The photo drifts slowly, shifts a little as you scroll, and opens full-size when tapped.
 export function PhotoBanner({ url, focus, shape = "square", mode = "auto", interactive = true, caption, children }: {
   url: string; focus: [number, number]; shape?: Shape; mode?: Mode; interactive?: boolean; caption?: string; children: React.ReactNode;
 }) {
@@ -52,10 +23,7 @@ export function PhotoBanner({ url, focus, shape = "square", mode = "auto", inter
   const opener = useRef<HTMLButtonElement>(null);
   const [loaded, setLoaded] = useState(false);
   const [open, setOpen] = useState(false);
-  const [glow, setGlow] = useState<{ bottom: string; left: string } | null>(null);
   const s = SHAPES[shape];
-
-  useEffect(() => { sampleEdges(url).then(setGlow); }, [url]);
 
   // A gentle shift of the photo against the page as it scrolls.
   useEffect(() => {
@@ -87,9 +55,9 @@ export function PhotoBanner({ url, focus, shape = "square", mode = "auto", inter
   }, [open]);
 
   const photoBox = {
-    auto: `relative w-full shrink-0 ${s.phone} lg:absolute lg:inset-y-0 lg:right-0 lg:aspect-auto lg:w-[62%]`,
-    stacked: `relative w-full shrink-0 ${s.phone}`,
-    wide: "absolute inset-y-0 right-0 w-[62%]",
+    auto: `pb-fade-auto relative w-full shrink-0 ${s.phone} lg:absolute lg:inset-y-0 lg:right-0 lg:aspect-auto lg:w-[62%]`,
+    stacked: `pb-fade-b relative w-full shrink-0 ${s.phone}`,
+    wide: "pb-fade-l absolute inset-y-0 right-0 w-[62%]",
   }[mode];
   const panel = {
     auto: "-mt-7 rounded-t-[1.75rem] lg:mt-0 lg:w-[46%] lg:rounded-l-none lg:rounded-r-[2.5rem] lg:self-stretch lg:justify-center",
@@ -117,14 +85,15 @@ export function PhotoBanner({ url, focus, shape = "square", mode = "auto", inter
   return (
     <>
       <div ref={root} style={{ ["--py" as string]: 0 }}
-        className={`relative flex flex-col overflow-hidden rounded-2xl bg-[#3b0d1b] text-white shadow-card ${mode === "wide" ? "flex-row" : "lg:flex-row"} ${sizing}`}>
+        className={`relative isolate flex flex-col overflow-hidden rounded-2xl bg-[#2a0a14] text-white shadow-card ${mode === "wide" ? "flex-row" : "lg:flex-row"} ${sizing}`}>
+        <div aria-hidden className="pb-backdrop absolute inset-0 -z-10" style={{ backgroundImage: `url("${url}")` }} />
+        <div aria-hidden className="pb-tint absolute inset-0 -z-10" />
         {interactive ? (
           <button ref={opener} type="button" onClick={() => setOpen(true)} aria-label="View the full photo" className={`${photoBox} cursor-zoom-in overflow-hidden`}>{photo}</button>
         ) : (
           <div className={`${photoBox} overflow-hidden`}>{photo}</div>
         )}
-        <div className={`pb-panel relative z-10 flex flex-col ${panel}`}
-          style={{ ["--glow-b" as string]: glow?.bottom ?? "transparent", ["--glow-l" as string]: glow?.left ?? "transparent" }}>
+        <div className={`pb-panel relative z-10 flex flex-col ${panel}`}>
           {children}
         </div>
       </div>

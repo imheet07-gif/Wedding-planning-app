@@ -112,22 +112,24 @@ button.bg-green-700:not(:disabled):hover { filter: brightness(0.93); }
 .card-hover { transition: transform 0.18s, box-shadow 0.18s, border-color 0.18s; }
 .card-hover:hover { transform: translateY(-2px); border-color: var(--color-rose-200); box-shadow: 0 8px 24px rgb(60 30 30 / 0.09); }
 
-/* Dashboard banner with a couple photo: the wine panel carries a glow taken from the photo's own colours. */
-.pb-panel {
-  background:
-    radial-gradient(120% 90% at 50% 0%, var(--glow-b, transparent), transparent 70%),
-    radial-gradient(circle at 88% 12%, rgb(224 178 74 / 0.18) 0, transparent 38%),
-    linear-gradient(135deg, var(--color-rose-700), var(--color-rose-900));
-  box-shadow: 0 -12px 28px rgb(20 4 10 / 0.35);
-  animation: pb-rise 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) 0.1s both;
+/* Dashboard banner with a couple photo: the photo fades into a blurred, darkened copy of itself that carries the words. */
+.pb-backdrop {
+  background-size: cover;
+  background-position: center;
+  filter: blur(28px) saturate(1.35) brightness(0.5);
+  transform: scale(1.6);
 }
+.pb-tint { background: linear-gradient(180deg, rgb(70 10 32 / 0.1), rgb(70 10 32 / 0.5)); }
+.pb-fade-b, .pb-fade-auto {
+  -webkit-mask-image: linear-gradient(#000 80%, transparent);
+  mask-image: linear-gradient(#000 80%, transparent);
+}
+.pb-panel { animation: pb-rise 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) 0.1s both; }
 @media (min-width: 1024px) {
-  .pb-panel {
-    background:
-      radial-gradient(90% 120% at 100% 50%, var(--glow-l, transparent), transparent 70%),
-      radial-gradient(circle at 12% 110%, rgb(224 178 74 / 0.14) 0, transparent 40%),
-      linear-gradient(135deg, var(--color-rose-700), var(--color-rose-900));
-    box-shadow: 12px 0 30px rgb(20 4 10 / 0.35);
+  .pb-tint { background: linear-gradient(90deg, rgb(70 10 32 / 0.5), rgb(70 10 32 / 0.1)); }
+  .pb-fade-l, .pb-fade-auto {
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 22%);
+    mask-image: linear-gradient(to right, transparent, #000 22%);
   }
 }
 .pb-par { transform: translate3d(0, calc(var(--py, 0) * 14px), 0); will-change: transform; }
