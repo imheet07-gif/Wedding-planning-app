@@ -20,6 +20,8 @@ export type WeddingEvent = {
 export type Guest = {
   id: string;
   name: string;
+  name_gu: string | null;
+  name_hi: string | null;
   side: Side;
   grp: string | null;
   headcount: number;

@@ -31,7 +31,7 @@ function InviteSender({ ev }: { ev: WeddingEvent }) {
   const media = ev.invite_media_url;
   // One message per chosen language, signed by the family on the guest's side unless "Sign as" overrides it
   // (for relatives who belong to both families, or when one side is sending to the other's list).
-  const parts = (g: { name: string; side: Guest["side"] }) => buildParts({ guest: { ...g, side: signAs === "guest" ? g.side : signAs }, event: ev, texts, langs, settings });
+  const parts = (g: Pick<Guest, "name" | "name_gu" | "name_hi" | "side">) => buildParts({ guest: { ...g, side: signAs === "guest" ? g.side : signAs }, event: ev, texts, langs, settings });
   const message = (g: Guest) => joinParts(parts(g), media);
 
   const rows = invitations
@@ -40,6 +40,8 @@ function InviteSender({ ev }: { ev: WeddingEvent }) {
     .filter((r): r is { inv: typeof r.inv; g: Guest } => !!r.g)
     .filter((r) => sideShown === "all" || r.g.side === sideShown)
     .filter((r) => !onlyUnsent || !r.inv.sent_at);
+  const missingLangs = langs.filter((l) => l === "gu" || l === "hi");
+  const missingNames = rows.filter((r) => missingLangs.some((l) => !(l === "gu" ? r.g.name_gu : r.g.name_hi)?.trim())).length;
   const sentCount = invitations.filter((i) => i.event_id === ev.id && i.sent_at).length;
   const total = invitations.filter((i) => i.event_id === ev.id).length;
 
@@ -80,7 +82,7 @@ function InviteSender({ ev }: { ev: WeddingEvent }) {
     setBusy(false);
   }
 
-  const sample = rows[0]?.g ?? ({ name: "Patel family", side: "bride" } as Guest);
+  const sample = rows[0]?.g ?? ({ name: "Patel family", name_gu: "પટેલ પરિવાર", name_hi: "पटेल परिवार", side: "bride" } as Guest);
 
   return (
     <div className="space-y-4">
@@ -142,6 +144,13 @@ function InviteSender({ ev }: { ev: WeddingEvent }) {
       </section>
 
       {err && <p className="text-sm text-red-600">{err}</p>}
+
+      {missingNames > 0 && (
+        <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+          {missingNames} {missingNames === 1 ? "guest has" : "guests have"} no {missingLangs.map((l) => LANG_LABEL[l]).join(" / ")} spelling of their name, so the English name is used in that part of the message.
+          {" "}Add them on the <Link href="/guests" className="underline">Guests page</Link> (tap &quot;Name in Gujarati / Hindi&quot; under a guest).
+        </p>
+      )}
 
       <section className="space-y-2">
         <div className="flex flex-wrap items-center justify-between gap-2">
