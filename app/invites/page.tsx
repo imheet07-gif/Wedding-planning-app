@@ -15,6 +15,8 @@ function InviteSender({ ev }: { ev: WeddingEvent }) {
   const [editLang, setEditLang] = useState<Lang>("gu");
   const langs = parseLangs(settings.invite_languages);
   const [onlyUnsent, setOnlyUnsent] = useState(false);
+  const [sideShown, setSideShown] = useState<"all" | Guest["side"]>("all");
+  const [signAs, setSignAs] = useState<"guest" | Guest["side"]>("guest");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
   const cc = settings.country_code ?? "91";
@@ -27,14 +29,16 @@ function InviteSender({ ev }: { ev: WeddingEvent }) {
   }
 
   const media = ev.invite_media_url;
-  // One message per chosen language, each signed by the family on the guest's side.
-  const parts = (g: { name: string; side: Guest["side"] }) => buildParts({ guest: g, event: ev, texts, langs, settings });
+  // One message per chosen language, signed by the family on the guest's side unless "Sign as" overrides it
+  // (for relatives who belong to both families, or when one side is sending to the other's list).
+  const parts = (g: { name: string; side: Guest["side"] }) => buildParts({ guest: { ...g, side: signAs === "guest" ? g.side : signAs }, event: ev, texts, langs, settings });
   const message = (g: Guest) => joinParts(parts(g), media);
 
   const rows = invitations
     .filter((i) => i.event_id === ev.id)
     .map((i) => ({ inv: i, g: guests.find((g) => g.id === i.guest_id) }))
     .filter((r): r is { inv: typeof r.inv; g: Guest } => !!r.g)
+    .filter((r) => sideShown === "all" || r.g.side === sideShown)
     .filter((r) => !onlyUnsent || !r.inv.sent_at);
   const sentCount = invitations.filter((i) => i.event_id === ev.id && i.sent_at).length;
   const total = invitations.filter((i) => i.event_id === ev.id).length;
@@ -145,6 +149,27 @@ function InviteSender({ ev }: { ev: WeddingEvent }) {
           <label className="flex items-center gap-1 text-sm">
             <input type="checkbox" checked={onlyUnsent} onChange={(e) => setOnlyUnsent(e.target.checked)} /> Not sent yet
           </label>
+        </div>
+        <div className="card grid gap-2 p-3 text-sm sm:grid-cols-2">
+          <label className="space-y-1">
+            <span className="block font-medium">Show guests from</span>
+            <select value={sideShown} onChange={(e) => setSideShown(e.target.value as typeof sideShown)} className="w-full rounded-lg border p-2.5">
+              <option value="all">Everyone</option>
+              <option value="bride">Bride&apos;s side</option>
+              <option value="groom">Groom&apos;s side</option>
+              <option value="both">Both sides</option>
+            </select>
+          </label>
+          <label className="space-y-1">
+            <span className="block font-medium">Sign invites as</span>
+            <select value={signAs} onChange={(e) => setSignAs(e.target.value as typeof signAs)} className="w-full rounded-lg border p-2.5">
+              <option value="guest">Each guest&apos;s own side</option>
+              <option value="bride">Bride&apos;s family</option>
+              <option value="groom">Groom&apos;s family</option>
+              <option value="both">Both families</option>
+            </select>
+          </label>
+          <p className="text-xs text-gray-500 sm:col-span-2">Applies to this event while this page is open. The preview above and every message sent from this list use it. A guest&apos;s saved side is not changed.</p>
         </div>
         <div className="card">
           {rows.map(({ inv, g }) => {
