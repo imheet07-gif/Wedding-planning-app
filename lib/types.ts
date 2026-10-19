@@ -11,6 +11,8 @@ export type WeddingEvent = {
   notes: string | null;
   sort_order: number;
   invite_text: string | null;
+  invite_text_gu: string | null;
+  invite_text_hi: string | null;
   invite_media_url: string | null;
 };
 
