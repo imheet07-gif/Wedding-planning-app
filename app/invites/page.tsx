@@ -4,13 +4,16 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useWedding } from "@/components/WeddingProvider";
 import { useToast } from "@/components/Toast";
-import { DEFAULT_INVITE, fillTemplate, formatDate, normalizePhone, waLink } from "@/lib/whatsapp";
+import { normalizePhone, waLink } from "@/lib/whatsapp";
+import { LANGS, LANG_LABEL, buildParts, joinParts, parseLangs, templateFor, type Lang } from "@/lib/invites";
 import type { Guest, WeddingEvent } from "@/lib/types";
 
 function InviteSender({ ev }: { ev: WeddingEvent }) {
   const { guests, invitations, settings, canEdit, refresh } = useWedding();
   const notify = useToast();
-  const [template, setTemplate] = useState(ev.invite_text ?? DEFAULT_INVITE);
+  const [texts, setTexts] = useState<Record<Lang, string>>({ gu: templateFor(ev, "gu"), hi: templateFor(ev, "hi"), en: templateFor(ev, "en") });
+  const [editLang, setEditLang] = useState<Lang>("gu");
+  const langs = parseLangs(settings.invite_languages);
   const [onlyUnsent, setOnlyUnsent] = useState(false);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
@@ -24,14 +27,9 @@ function InviteSender({ ev }: { ev: WeddingEvent }) {
   }
 
   const media = ev.invite_media_url;
-  const message = (g: Guest) =>
-    fillTemplate(template, {
-      name: g.name,
-      event: ev.name,
-      date: formatDate(ev.event_date) || "[date to be announced]",
-      time: ev.start_time ?? "",
-      venue: ev.venue ?? "[venue to be announced]",
-    }) + (media ? `\n\n${media}` : "");
+  // One message per chosen language, each signed by the family on the guest's side.
+  const parts = (g: { name: string; side: Guest["side"] }) => buildParts({ guest: g, event: ev, texts, langs, settings });
+  const message = (g: Guest) => joinParts(parts(g), media);
 
   const rows = invitations
     .filter((i) => i.event_id === ev.id)
@@ -58,7 +56,7 @@ function InviteSender({ ev }: { ev: WeddingEvent }) {
       const blob = await (await fetch(media)).blob();
       const file = new File([blob], decodeURIComponent(media.split("/").pop() ?? "invite"), { type: blob.type });
       if (!navigator.canShare?.({ files: [file] })) return alert("File sharing is not supported on this device. Use the link in the message instead.");
-      await navigator.share({ files: [file], text: fillTemplate(template, { name: g.name, event: ev.name, date: formatDate(ev.event_date), time: ev.start_time ?? "", venue: ev.venue ?? "" }) });
+      await navigator.share({ files: [file], text: joinParts(parts(g)) });
       if (canEdit) setSent(g.id, true);
     } catch (e) {
       if ((e as Error).name !== "AbortError") alert("Could not share the file.");
@@ -78,22 +76,39 @@ function InviteSender({ ev }: { ev: WeddingEvent }) {
     setBusy(false);
   }
 
-  const sample = rows[0]?.g ?? { name: "Sharma family" } as Guest;
+  const sample = rows[0]?.g ?? ({ name: "Patel family", side: "bride" } as Guest);
 
   return (
     <div className="space-y-4">
       <section className="space-y-2 card p-3">
         <h2 className="font-semibold">Message</h2>
         <p className="text-sm text-gray-500">
-          Use {"{name}"}, {"{event}"}, {"{date}"}, {"{time}"} and {"{venue}"}. They are filled in for each guest.
+          Write it once per language. Use {"{name}"}, {"{event}"}, {"{date}"}, {"{time}"}, {"{venue}"} and {"{from}"}. They are filled in for each guest:
+          {" "}{"{from}"} is the family on that guest&apos;s side, and the date and event name come out in the same language.
         </p>
-        <textarea aria-label="Invite message" rows={6} disabled={!canEdit} value={template} onChange={(e) => setTemplate(e.target.value)} className="w-full rounded-lg border p-2" />
+        <div role="group" aria-label="Language to edit" className="flex gap-2">
+          {LANGS.map((l) => (
+            <button key={l} aria-pressed={editLang === l} onClick={() => setEditLang(l)} lang={l}
+              className={`min-h-10 rounded-lg border px-3 text-sm font-medium ${editLang === l ? "border-rose-600 bg-rose-600 text-white" : "bg-white text-gray-700"}`}>
+              {LANG_LABEL[l]}
+            </button>
+          ))}
+        </div>
+        <textarea aria-label={`Invite message in ${LANG_LABEL[editLang]}`} lang={editLang} rows={7} disabled={!canEdit} value={texts[editLang]}
+          onChange={(e) => setTexts({ ...texts, [editLang]: e.target.value })} className="w-full rounded-lg border p-2" />
         {canEdit && (
-          <button onClick={() => run(supabase().from("events").update({ invite_text: template }).eq("id", ev.id))} className="rounded-lg bg-rose-600 px-3 py-2 text-white">
-            Save message
+          <button onClick={() => run(supabase().from("events").update({ invite_text: texts.en, invite_text_gu: texts.gu, invite_text_hi: texts.hi }).eq("id", ev.id))}
+            className="rounded-lg bg-rose-600 px-3 py-2 text-white">
+            Save messages
           </button>
         )}
-        <div className="whitespace-pre-wrap rounded-lg bg-green-50 p-3 text-sm">{message(sample)}</div>
+        <p className="pt-1 text-xs text-gray-500">What {sample.name} will receive{rows[0] ? "" : " (example)"}, in {langs.map((l) => LANG_LABEL[l]).join(" + ")}:</p>
+        <div className="space-y-2 rounded-lg bg-green-50 p-3 text-sm">
+          {parts(sample).map((p, i) => (
+            <p key={p.lang} lang={p.lang} className={`whitespace-pre-wrap ${i > 0 ? "border-t border-green-200 pt-2" : ""}`}>{p.text}</p>
+          ))}
+          {media && <p className="break-all text-xs text-gray-500">{media}</p>}
+        </div>
       </section>
 
       <section className="space-y-2 card p-3 text-sm">
@@ -156,6 +171,60 @@ function InviteSender({ ev }: { ev: WeddingEvent }) {
   );
 }
 
+const SEND_MODES: { value: string; label: string }[] = [
+  { value: "gu,hi", label: "ગુજરાતી + हिन्दी" },
+  { value: "gu", label: "ગુજરાતી" },
+  { value: "hi", label: "हिन्दी" },
+  { value: "en", label: "English" },
+  { value: "gu,hi,en", label: "All three" },
+];
+
+// Which languages go out, and the family each guest's invitation is signed by.
+function SendSettings() {
+  const { settings, canEdit, refresh } = useWedding();
+  const notify = useToast();
+  const mode = parseLangs(settings.invite_languages).join(",");
+
+  async function save(key: string, value: string, ok = "Saved") {
+    const { error } = await supabase().from("app_settings").upsert({ key, value });
+    notify(error ? error.message : ok, error ? "error" : "ok");
+    await refresh();
+  }
+
+  return (
+    <section className="space-y-3 card p-3">
+      <div>
+        <h2 className="font-semibold">Send in</h2>
+        <div role="group" aria-label="Languages to send in" className="mt-2 flex flex-wrap gap-2">
+          {SEND_MODES.map((m) => (
+            <button key={m.value} disabled={!canEdit} aria-pressed={mode === m.value} onClick={() => save("invite_languages", m.value, "Languages saved")}
+              className={`min-h-10 rounded-lg border px-3 text-sm font-medium ${mode === m.value ? "border-rose-600 bg-rose-600 text-white" : "bg-white text-gray-700"}`}>
+              {m.label}
+            </button>
+          ))}
+        </div>
+        <p className="mt-1 text-xs text-gray-500">With more than one language, each goes in the same WhatsApp message, one below the other.</p>
+      </div>
+      <div>
+        <h2 className="font-semibold">Signed by</h2>
+        <p className="text-xs text-gray-500">Guests on the bride&apos;s side get the bride&apos;s family name, groom&apos;s side the groom&apos;s. Guests marked &quot;both&quot; get both. Leave a language blank to use the English name.</p>
+        <div className="mt-2 space-y-3">
+          {([["bride", "Bride's family"], ["groom", "Groom's family"]] as const).map(([who, label]) => (
+            <fieldset key={who} className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+              <legend className="mb-1 text-sm text-gray-600">{label}</legend>
+              {([["", "English", "Shah family"], ["_gu", "ગુજરાતી", "શાહ પરિવાર"], ["_hi", "हिन्दी", "शाह परिवार"]] as const).map(([suffix, lang, example]) => (
+                <input key={suffix} defaultValue={settings[`family_${who}${suffix}`] ?? ""} disabled={!canEdit} placeholder={example} lang={suffix ? suffix.slice(1) : "en"}
+                  aria-label={`${label}, ${lang}`} className="min-w-0 rounded-lg border p-2"
+                  onBlur={(e) => e.target.value.trim() !== (settings[`family_${who}${suffix}`] ?? "") && save(`family_${who}${suffix}`, e.target.value.trim(), "Name saved")} />
+              ))}
+            </fieldset>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function InvitesPage() {
   const { events, settings } = useWedding();
   const [eventId, setEventId] = useState("");
@@ -167,6 +236,7 @@ export default function InvitesPage() {
         Each guest gets their own message. Tapping <b>Send on WhatsApp</b> opens WhatsApp with the message ready, and you press send there.
         The app cannot tell whether you actually sent it, so check before moving on.
       </p>
+      <SendSettings />
       <div className="flex flex-wrap items-center gap-3">
         <select aria-label="Event" value={eventId} onChange={(e) => setEventId(e.target.value)} className="rounded-lg border bg-white p-2">
           <option value="">Choose an event…</option>
