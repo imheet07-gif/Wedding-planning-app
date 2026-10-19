@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { useWedding } from "@/components/WeddingProvider";
 import { useToast } from "@/components/Toast";
 import { Bar, CountUp } from "@/components/ui";
-import { HeroPhoto } from "@/components/Couple";
+import { HeroPhoto, SHAPES, parseShape } from "@/components/Couple";
 import { parseFocus } from "@/lib/image";
 import { InstallCard } from "@/components/Install";
 import { inr } from "@/lib/constants";
@@ -80,8 +80,8 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <section className={`hero animate-fade-up relative overflow-hidden rounded-2xl text-white shadow-card ${photo ? "flex flex-col lg:min-h-[19rem]" : "p-6 lg:p-8"}`}>
-        {photo && <HeroPhoto url={photo} focus={parseFocus(settings.couple_photo_focus)} />}
+      <section className={`hero animate-fade-up relative overflow-hidden rounded-2xl text-white shadow-card ${photo ? `flex flex-col ${SHAPES[parseShape(settings.couple_photo_shape)].hero}` : "p-6 lg:p-8"}`}>
+        {photo && <HeroPhoto url={photo} focus={parseFocus(settings.couple_photo_focus)} shape={parseShape(settings.couple_photo_shape)} />}
         <div className={photo ? "relative -mt-1 px-6 pb-6 lg:mt-0 lg:flex lg:max-w-[44%] lg:flex-col lg:justify-center lg:p-8" : ""}>
         <div className="flex items-center justify-between gap-4">
           <div className="min-w-0">
