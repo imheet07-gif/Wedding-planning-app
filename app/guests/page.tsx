@@ -22,6 +22,8 @@ export default function GuestsPage() {
   const [bulkSide, setBulkSide] = useState<Side>("bride");
   const [err, setErr] = useState("");
   const [adding, setAdding] = useState<boolean | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [pick, setPick] = useState<Set<string>>(new Set()); // events chosen for a bulk invite or removal
 
   const invited = useMemo(() => {
     const m = new Map<string, Set<string>>();
@@ -35,6 +37,11 @@ export default function GuestsPage() {
       (!sideFilter || g.side === sideFilter) &&
       (!eventFilter || invited.get(g.id)?.has(eventFilter)),
   );
+  // Bulk actions only touch guests that are both ticked and still visible, so a filter can never hide a surprise.
+  const chosen = shown.filter((g) => selected.has(g.id));
+  const allShownChosen = shown.length > 0 && chosen.length === shown.length;
+  const tick = (id: string, on: boolean) => setSelected((s) => { const n = new Set(s); if (on) n.add(id); else n.delete(id); return n; });
+  const toggleAll = () => setSelected(allShownChosen ? new Set() : new Set(shown.map((g) => g.id)));
   const shownPeople = shown.reduce((n, g) => n + g.headcount, 0);
   // On phones the add forms start closed once there are guests, so the list is the first thing you see.
   const showAdd = adding ?? guests.length === 0;
@@ -89,8 +96,24 @@ export default function GuestsPage() {
     if (rows.length) return run(supabase().from("invitations").insert(rows));
   }
 
+  async function bulkInvite() {
+    const rows = chosen.flatMap((g) => [...pick].filter((e) => !invited.get(g.id)?.has(e)).map((event_id) => ({ guest_id: g.id, event_id })));
+    if (!rows.length) return notify("They are already invited to that.");
+    await run(supabase().from("invitations").insert(rows));
+  }
+
+  async function bulkUninvite() {
+    const names = events.filter((e) => pick.has(e.id)).map((e) => e.name).join(", ");
+    if (!confirm(`Remove ${chosen.length} guests from ${names}? Their replies for those events are lost.`)) return;
+    await run(supabase().from("invitations").delete().in("guest_id", chosen.map((g) => g.id)).in("event_id", [...pick]));
+  }
+
+  async function setSelectedSide(side: Side) {
+    await run(supabase().from("guests").update({ side }).in("id", chosen.map((g) => g.id)));
+  }
+
   return (
-    <div className="space-y-6">
+    <div className={`space-y-6 ${chosen.length ? "pb-44" : ""}`}>
       {canEdit && (
         <div className="flex flex-wrap items-center gap-3">
           <button onClick={() => setAdding(!showAdd)} className="inline-flex items-center gap-2 rounded-lg bg-rose-600 px-4 py-2.5 text-sm font-medium text-white md:hidden">
@@ -152,7 +175,14 @@ export default function GuestsPage() {
             {events.map((ev) => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
           </select>
         </div>
-        <p className="text-sm text-gray-500">{shown.length} entries · {shownPeople} people</p>
+        <p className="flex flex-wrap items-center gap-x-3 text-sm text-gray-500">
+          <span>{shown.length} entries · {shownPeople} people</span>
+          {canEdit && shown.length > 0 && (
+            <button type="button" onClick={toggleAll} className="min-h-10 text-rose-700 underline">
+              {allShownChosen ? "Clear selection" : `Select all ${shown.length} shown`}
+            </button>
+          )}
+        </p>
         {canEdit && shown.length > 0 && (
           <div className="flex flex-wrap items-center gap-2 md:hidden">
             <span className="text-xs text-gray-500">Invite everyone shown to:</span>
@@ -181,7 +211,10 @@ export default function GuestsPage() {
         {shown.map((g) => (
           <div key={g.id} className="card space-y-3 p-4">
             <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
+              {canEdit && (
+                <input type="checkbox" aria-label={`Select ${g.name}`} checked={selected.has(g.id)} onChange={(e) => tick(g.id, e.target.checked)} className="mt-1 h-5 w-5 shrink-0" />
+              )}
+              <div className="min-w-0 flex-1">
                 <p className="font-medium">{g.name}</p>
                 <p className="text-xs text-gray-500">{[sideLabel[g.side] + " side", g.grp, g.diet].filter(Boolean).join(" · ")}</p>
                 {g.phone && (
@@ -231,6 +264,9 @@ export default function GuestsPage() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-left text-gray-500">
               <tr>
+                {canEdit && (
+                  <th className="w-8 p-2"><input type="checkbox" aria-label="Select all shown guests" checked={allShownChosen} onChange={toggleAll} /></th>
+                )}
                 <th className="p-2">Name</th>
                 <th className="p-2">Side</th>
                 <th className="p-2">People</th>
@@ -248,6 +284,9 @@ export default function GuestsPage() {
             <tbody>
               {shown.map((g) => (
                 <tr key={g.id} className="border-t">
+                  {canEdit && (
+                    <td className="p-2"><input type="checkbox" aria-label={`Select ${g.name}`} checked={selected.has(g.id)} onChange={(e) => tick(g.id, e.target.checked)} /></td>
+                  )}
                   <td className="p-2">
                     {g.name}
                     <div className="text-xs text-gray-500">{[g.grp, g.phone, g.diet].filter(Boolean).join(" · ")}</div>
@@ -276,6 +315,33 @@ export default function GuestsPage() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {canEdit && chosen.length > 0 && (
+        <div role="region" aria-label="Actions for selected guests"
+          className="fixed inset-x-3 bottom-[calc(5rem+var(--safe-bottom))] z-30 space-y-2 rounded-2xl border bg-white p-3 text-sm shadow-2xl lg:bottom-4 lg:left-[17rem] lg:right-6">
+          <div className="flex items-center justify-between gap-2">
+            <p className="font-medium">{chosen.length} selected · {chosen.reduce((n, g) => n + g.headcount, 0)} people</p>
+            <button type="button" onClick={() => setSelected(new Set())} className="min-h-10 px-2 text-gray-500 underline">Clear</button>
+          </div>
+          <div role="group" aria-label="Events for the action" className="flex flex-wrap gap-2">
+            {events.map((ev) => (
+              <button key={ev.id} type="button" aria-pressed={pick.has(ev.id)}
+                onClick={() => setPick((p) => { const n = new Set(p); if (n.has(ev.id)) n.delete(ev.id); else n.add(ev.id); return n; })}
+                className={`min-h-10 rounded-full border px-3 text-xs font-medium ${pick.has(ev.id) ? "border-rose-600 bg-rose-600 text-white" : "bg-white text-gray-600"}`}>
+                {ev.name}
+              </button>
+            ))}
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button type="button" disabled={!pick.size} onClick={bulkInvite} className="min-h-10 rounded-lg bg-rose-600 px-3 text-white disabled:opacity-40">Invite to chosen</button>
+            <button type="button" disabled={!pick.size} onClick={bulkUninvite} className="min-h-10 rounded-lg border px-3 disabled:opacity-40">Remove from chosen</button>
+            <select aria-label="Set side for selected guests" value="" onChange={(e) => e.target.value && setSelectedSide(e.target.value as Side)} className="min-h-10 rounded-lg border p-2">
+              <option value="">Set side…</option>
+              {Object.entries(sideLabel).map(([k, v]) => <option key={k} value={k}>{v} side</option>)}
+            </select>
+          </div>
         </div>
       )}
     </div>
