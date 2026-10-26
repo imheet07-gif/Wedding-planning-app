@@ -3,7 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useState } from "rea
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import type {
-  BudgetCategory, Expense, Guest, Invitation, Payment, Profile, Property, Room, Stay, Task, Vendor, VendorEvent,
+  BudgetCategory, EventSkip, Expense, Guest, Invitation, Payment, Profile, Property, Room, Stay, Task, Vendor, VendorEvent,
   WeddingEvent,
 } from "@/lib/types";
 
@@ -16,6 +16,7 @@ type Ctx = {
   events: WeddingEvent[];
   guests: Guest[];
   invitations: Invitation[];
+  skips: EventSkip[];
   profiles: Profile[];
   vendors: Vendor[];
   vendorEvents: VendorEvent[];
@@ -46,6 +47,7 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
   const [events, setEvents] = useState<WeddingEvent[]>([]);
   const [guests, setGuests] = useState<Guest[]>([]);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
+  const [skips, setSkips] = useState<EventSkip[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [vendorEvents, setVendorEvents] = useState<VendorEvent[]>([]);
@@ -61,7 +63,7 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
 
   const refresh = useCallback(async () => {
     const db = supabase();
-    const [e, g, i, p, v, ve, pay, b, x, pr, rm, st, tk, se] = await Promise.all([
+    const [e, g, i, p, v, ve, pay, b, x, pr, rm, st, tk, se, sk] = await Promise.all([
       db.from("events").select("*").order("sort_order"),
       db.from("guests").select("*").order("name"),
       db.from("invitations").select("*"),
@@ -76,12 +78,14 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
       db.from("stays").select("*"),
       db.from("tasks").select("*").order("created_at"),
       db.from("app_settings").select("*"),
+      db.from("event_skips").select("*"), // missing until phase10.sql has been run, which is fine
     ]);
     const failed = [e, g, i, p, v, ve, pay, b, x, pr, rm, st, tk, se].find((r) => r.error);
     setError(failed?.error?.message ?? null);
     setEvents((e.data as WeddingEvent[]) ?? []);
     setGuests((g.data as Guest[]) ?? []);
     setInvitations((i.data as Invitation[]) ?? []);
+    setSkips((sk.data as EventSkip[]) ?? []);
     setProfiles((p.data as Profile[]) ?? []);
     setVendors((v.data as Vendor[]) ?? []);
     setVendorEvents((ve.data as VendorEvent[]) ?? []);
@@ -118,7 +122,7 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <WeddingContext.Provider
-      value={{ session, loading, ready, me, canEdit: me?.role === "editor", events, guests, invitations, profiles, vendors, vendorEvents, payments, budget, expenses, properties, rooms, stays, tasks, settings, error, refresh }}
+      value={{ session, loading, ready, me, canEdit: me?.role === "editor", events, guests, invitations, skips, profiles, vendors, vendorEvents, payments, budget, expenses, properties, rooms, stays, tasks, settings, error, refresh }}
     >
       {children}
     </WeddingContext.Provider>

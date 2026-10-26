@@ -1,4 +1,5 @@
 "use client";
+import { NotionAutoSync } from "@/components/NotionAutoSync";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -187,6 +188,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-dvh flex-col lg:block lg:pl-64">
       <TextSizeSync />
+      <NotionAutoSync />
       <a href="#main" className="sr-only z-50 rounded-lg bg-white px-4 py-2 text-rose-800 shadow focus:not-sr-only focus:fixed focus:left-4 focus:top-4">Skip to content</a>
       {/* Desktop sidebar */}
       <aside className="fixed inset-y-0 left-0 hidden w-64 flex-col border-r bg-white px-3 py-5 lg:flex print:hidden">

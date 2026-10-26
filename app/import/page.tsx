@@ -4,12 +4,12 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useWedding } from "@/components/WeddingProvider";
 import { BASE_HEADERS, parseCsv, parseGuestRows, templateRows, type Cell, type ParsedRow } from "@/lib/importGuests";
-import { planFromRows, planSync, type SyncPlan } from "@/lib/sheetSync";
+import { planSync, type SyncPlan } from "@/lib/sheetSync";
+import { applySyncPlan, fetchNotionPlan, insertGuests, saveSetting } from "@/lib/syncApply";
 import { sheetCsvUrl } from "@/lib/sheetLink";
-import { notionDbId, rowsFromNotion, type NotionPayload } from "@/lib/notionDb";
+import { notionDbId } from "@/lib/notionDb";
 
 const MAX_ROWS = 2000;
-const chunk = <T,>(a: T[], n = 200) => Array.from({ length: Math.ceil(a.length / n) }, (_, i) => a.slice(i * n, i * n + n));
 
 export default function ImportPage() {
   const { events, guests, invitations, settings, canEdit, refresh } = useWedding();
@@ -65,27 +65,6 @@ export default function ImportPage() {
   const importable = rows?.filter((r) => r.status === "ok" || r.status === "warning") ?? [];
   const count = (s: ParsedRow["status"]) => rows?.filter((r) => r.status === s).length ?? 0;
 
-  // Adds guests and their event invitations in batches; returns how many went in.
-  async function insertGuests(list: ParsedRow[], onDone?: (n: number) => void) {
-    const db = supabase();
-    let done = 0;
-    for (const part of chunk(list)) {
-      const { data, error } = await db
-        .from("guests")
-        .insert(part.map((r) => ({ name: r.name, side: r.side, grp: r.grp, headcount: r.headcount, phone: r.phone, diet: r.diet, notes: r.notes })))
-        .select("id");
-      if (error || !data) throw new Error(error?.message ?? "Import failed.");
-      const inv = part.flatMap((r, i) => r.eventIds.map((event_id) => ({ guest_id: data[i].id, event_id })));
-      for (const invPart of chunk(inv, 500)) {
-        const { error: e2 } = await db.from("invitations").insert(invPart);
-        if (e2) throw new Error(e2.message);
-      }
-      done += part.length;
-      onDone?.(done);
-    }
-    return done;
-  }
-
   async function doImport() {
     setBusy(true); setErr(""); setResult("");
     let done = 0;
@@ -135,31 +114,12 @@ export default function ImportPage() {
   async function checkNotion() {
     setSheetBusy(true); setNErr(""); setNMsg(""); setPlan(null);
     try {
-      const { data: s } = await supabase().auth.getSession();
-      const res = await fetch("/api/notion", {
-        method: "POST",
-        headers: { "content-type": "application/json", authorization: `Bearer ${s.session?.access_token ?? ""}` },
-        body: JSON.stringify({ url: savedNotion }),
-      });
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(body.error ?? "Could not read Notion.");
-      const { rows, columns, problems } = rowsFromNotion(body as NotionPayload, events, nSide);
-      const ok = rows.filter((r) => r.status === "ok");
-      const skipped = rows.filter((r) => r.status !== "ok");
-      // Lists are often left unmarked, so this only ever adds invitations and never removes any.
-      const next = planFromRows(ok, columns, problems, events, guests, invitations, { removeUnticked: false });
-      next.skipped = skipped;
+      setPlan(await fetchNotionPlan(savedNotion, nSide, events, guests, invitations));
       setPlanFrom("notion");
-      setPlan(next);
     } catch (e) {
       setNErr((e as Error).message);
     }
     setSheetBusy(false);
-  }
-
-  async function saveSetting(key: string, value: string) {
-    const { error } = await supabase().from("app_settings").upsert({ key, value });
-    if (error) throw new Error(error.message);
   }
 
   async function saveLink() {
@@ -199,26 +159,11 @@ export default function ImportPage() {
 
   async function applySync() {
     if (!plan) return;
-    setSheetBusy(true); setSheetErr(""); setSheetMsg("");
-    const db = supabase();
+    setSheetBusy(true); setSheetErr(""); setNErr(""); setSheetMsg(""); setNMsg("");
     try {
-      const added = await insertGuests(plan.adds);
-      for (const u of plan.updates) {
-        if (Object.keys(u.patch).length) {
-          const { error } = await db.from("guests").update(u.patch).eq("id", u.guest.id);
-          if (error) throw new Error(error.message);
-        }
-        if (u.addEvents.length) {
-          const { error } = await db.from("invitations").insert(u.addEvents.map((event_id) => ({ guest_id: u.guest.id, event_id })));
-          if (error) throw new Error(error.message);
-        }
-        for (const event_id of u.removeEvents) {
-          const { error } = await db.from("invitations").delete().match({ guest_id: u.guest.id, event_id });
-          if (error) throw new Error(error.message);
-        }
-      }
+      const { added, updated } = await applySyncPlan(plan);
       await saveSetting(planFrom === "notion" ? "notion_synced_at" : "guest_sheet_synced_at", new Date().toISOString());
-      (planFrom === "notion" ? setNMsg : setSheetMsg)(`Synced: ${added} added, ${plan.updates.length} updated.`);
+      (planFrom === "notion" ? setNMsg : setSheetMsg)(`Synced: ${added} added, ${updated} updated.`);
       setPlan(null);
     } catch (e) {
       (planFrom === "notion" ? setNErr : setSheetErr)(`${(e as Error).message} Some changes may already be applied; check again.`);
@@ -293,6 +238,18 @@ export default function ImportPage() {
                 <option value="both">Both sides</option>
               </select>
             </label>
+            {savedNotion && (
+              <label className="flex items-start gap-2">
+                <input type="checkbox" className="mt-1" checked={settings.notion_auto === "1"} onChange={(e) => saveSetting("notion_auto", e.target.checked ? "1" : "0").then(refresh)} />
+                <span>
+                  <span className="font-medium">Keep the guest list updated automatically</span>
+                  <span className="block text-xs text-gray-500">
+                    Whenever an editor opens the app, at most every 10 minutes, it adds new guests from Notion and updates people, contact and group. Nothing is deleted.
+                    Notion decides who is on the list, so to remove or rename someone, do it in Notion (a guest deleted only in the app comes back). It does not run while nobody has the app open. If a sync would change a large part of the list, it pauses and waits for you.
+                  </span>
+                </span>
+              </label>
+            )}
             <div className="flex flex-wrap gap-2">
               <button onClick={saveNotionLink} disabled={nValue.trim() === savedNotion} className="rounded-lg border px-3 py-2 disabled:opacity-40">{nValue.trim() ? "Save link" : "Remove link"}</button>
               {savedNotion && <button onClick={checkNotion} disabled={sheetBusy || nValue.trim() !== savedNotion} className="rounded-lg bg-rose-600 px-3 py-2 text-white disabled:opacity-40">{sheetBusy ? "Checking…" : "Check Notion"}</button>}
@@ -310,6 +267,8 @@ export default function ImportPage() {
           <p className="text-gray-500">Only editors can link Notion.</p>
         )}
         {settings.notion_synced_at && <p className="text-xs text-gray-500">Last synced {new Date(settings.notion_synced_at).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</p>}
+        {settings.notion_last_result && settings.notion_auto === "1" && <p className="text-xs text-gray-500">Last automatic change: {settings.notion_last_result}</p>}
+        {settings.notion_last_error && settings.notion_auto === "1" && <p role="alert" className="text-amber-700">{settings.notion_last_error}</p>}
         {nErr && <p role="alert" className="text-red-600">{nErr}</p>}
         {nMsg && <p className="text-green-700">{nMsg}</p>}
       </section>

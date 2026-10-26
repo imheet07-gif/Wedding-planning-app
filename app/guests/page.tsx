@@ -9,14 +9,21 @@ import { NameLangs } from "@/components/NameLangs";
 import { Check, FileSpreadsheet, Minus, Phone, Plus, Trash2, UsersRound, X } from "lucide-react";
 import type { Side } from "@/lib/types";
 
+type EventState = "invited" | "undecided" | "skip";
+const STATE_LABEL: Record<EventState, string> = { invited: "Invited", undecided: "Undecided", skip: "Not inviting" };
+const UNDECIDED_ANY = "__undecided";
+
 const sideLabel: Record<Side, string> = { bride: "Bride", groom: "Groom", both: "Both" };
 
 export default function GuestsPage() {
-  const { guests, events, invitations, canEdit, refresh } = useWedding();
+  const { guests, events, invitations, skips, canEdit, refresh } = useWedding();
   const notify = useToast();
   const [search, setSearch] = useState("");
   const [sideFilter, setSideFilter] = useState("");
-  const [eventFilter, setEventFilter] = useState("");
+  // The dashboard links here with ?event=<id>&status=undecided.
+  const q = typeof window === "undefined" ? new URLSearchParams() : new URLSearchParams(window.location.search);
+  const [eventFilter, setEventFilter] = useState(q.get("event") ?? "");
+  const [statusFilter, setStatusFilter] = useState<EventState | "all">((q.get("status") as EventState | null) ?? "invited");
   const [form, setForm] = useState({ name: "", side: "bride" as Side, grp: "", headcount: 1, phone: "", diet: "" });
   const [bulk, setBulk] = useState("");
   const [bulkSide, setBulkSide] = useState<Side>("bride");
@@ -31,11 +38,18 @@ export default function GuestsPage() {
     return m;
   }, [invitations]);
 
+  const skipped = useMemo(() => new Set(skips.map((s) => `${s.guest_id}|${s.event_id}`)), [skips]);
+  const stateOf = (guestId: string, eventId: string): EventState =>
+    invited.get(guestId)?.has(eventId) ? "invited" : skipped.has(`${guestId}|${eventId}`) ? "skip" : "undecided";
+
   const shown = guests.filter(
     (g) =>
       (!search || `${g.name} ${g.grp ?? ""}`.toLowerCase().includes(search.toLowerCase())) &&
       (!sideFilter || g.side === sideFilter) &&
-      (!eventFilter || invited.get(g.id)?.has(eventFilter)),
+      (!eventFilter ||
+        (eventFilter === UNDECIDED_ANY
+          ? events.some((ev) => stateOf(g.id, ev.id) === "undecided")
+          : statusFilter === "all" || stateOf(g.id, eventFilter) === statusFilter)),
   );
   // Bulk actions only touch guests that are both ticked and still visible, so a filter can never hide a surprise.
   const chosen = shown.filter((g) => selected.has(g.id));
@@ -84,9 +98,20 @@ export default function GuestsPage() {
     setBulk("");
   }
 
-  function toggleEvent(guestId: string, eventId: string, on: boolean) {
-    const t = supabase().from("invitations");
-    return run(on ? t.insert({ guest_id: guestId, event_id: eventId }) : t.delete().match({ guest_id: guestId, event_id: eventId }));
+  // Tapping an event goes undecided -> invited -> not inviting -> undecided.
+  async function cycleEvent(guestId: string, eventId: string) {
+    const db = supabase();
+    const now = stateOf(guestId, eventId);
+    const key = { guest_id: guestId, event_id: eventId };
+    if (now === "undecided") return run(db.from("invitations").insert(key));
+    if (now === "invited") {
+      const replied = invitations.find((i) => i.guest_id === guestId && i.event_id === eventId)?.rsvp !== "pending";
+      if (replied && !confirm("They already replied for this event. Mark them as not inviting and lose that reply?")) return;
+      const { error } = await db.from("invitations").delete().match(key);
+      if (error) return run(Promise.resolve({ error }));
+      return run(db.from("event_skips").insert(key));
+    }
+    return run(db.from("event_skips").delete().match(key));
   }
 
   function invitedToAll(eventId: string) {
@@ -102,10 +127,27 @@ export default function GuestsPage() {
     await run(supabase().from("invitations").insert(rows));
   }
 
-  async function bulkUninvite() {
+  // "Not inviting" is a decision made on purpose, so these guests stop showing up as undecided.
+  async function bulkSkip() {
     const names = events.filter((e) => pick.has(e.id)).map((e) => e.name).join(", ");
-    if (!confirm(`Remove ${chosen.length} guests from ${names}? Their replies for those events are lost.`)) return;
-    await run(supabase().from("invitations").delete().in("guest_id", chosen.map((g) => g.id)).in("event_id", [...pick]));
+    const replied = invitations.filter((i) => chosen.some((g) => g.id === i.guest_id) && pick.has(i.event_id) && i.rsvp !== "pending").length;
+    if (replied && !confirm(`${replied} of them already replied for ${names}. Mark them all as not inviting and lose those replies?`)) return;
+    const db = supabase();
+    const ids = chosen.map((g) => g.id);
+    const { error } = await db.from("invitations").delete().in("guest_id", ids).in("event_id", [...pick]);
+    if (error) return run(Promise.resolve({ error }));
+    const rows = chosen.flatMap((g) => [...pick].filter((e) => !skipped.has(`${g.id}|${e}`)).map((event_id) => ({ guest_id: g.id, event_id })));
+    if (rows.length) await run(db.from("event_skips").insert(rows)); else await refresh();
+  }
+
+  async function bulkUndecided() {
+    const names = events.filter((e) => pick.has(e.id)).map((e) => e.name).join(", ");
+    if (!confirm(`Put ${chosen.length} guests back to undecided for ${names}? Invitations and replies for those events are removed.`)) return;
+    const db = supabase();
+    const ids = chosen.map((g) => g.id);
+    const { error } = await db.from("invitations").delete().in("guest_id", ids).in("event_id", [...pick]);
+    if (error) return run(Promise.resolve({ error }));
+    await run(db.from("event_skips").delete().in("guest_id", ids).in("event_id", [...pick]));
   }
 
   async function setSelectedSide(side: Side) {
@@ -172,9 +214,19 @@ export default function GuestsPage() {
           </select>
           <select aria-label="Filter by event" value={eventFilter} onChange={(e) => setEventFilter(e.target.value)} className="rounded-lg border p-2.5">
             <option value="">All events</option>
+            <option value={UNDECIDED_ANY}>Undecided for any event</option>
             {events.map((ev) => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
           </select>
+          {eventFilter && eventFilter !== UNDECIDED_ANY && (
+            <select aria-label="Status for this event" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as EventState | "all")} className="rounded-lg border p-2.5">
+              <option value="invited">Invited</option>
+              <option value="undecided">Undecided</option>
+              <option value="skip">Not inviting</option>
+              <option value="all">Any status</option>
+            </select>
+          )}
         </div>
+        <p className="text-xs text-gray-500">Tap an event on a guest to cycle it: <b>undecided</b> (dashed) → <b>invited</b> (filled) → <b>not inviting</b> (crossed out).</p>
         <p className="flex flex-wrap items-center gap-x-3 text-sm text-gray-500">
           <span>{shown.length} entries · {shownPeople} people</span>
           {canEdit && shown.length > 0 && (
@@ -245,11 +297,12 @@ export default function GuestsPage() {
             </div>
             <div className="flex flex-wrap gap-2">
               {events.map((ev) => {
-                const on = invited.get(g.id)?.has(ev.id) ?? false;
+                const st = stateOf(g.id, ev.id);
+                const style = { invited: "border-rose-600 bg-rose-600 text-white", undecided: "border-dashed bg-white text-gray-500", skip: "bg-gray-100 text-gray-400 line-through" }[st];
                 return (
-                  <button key={ev.id} disabled={!canEdit} onClick={() => toggleEvent(g.id, ev.id, !on)}
-                    className={`rounded-full border px-3 py-1.5 text-xs font-medium ${on ? "border-rose-600 bg-rose-600 text-white" : "bg-white text-gray-600"}`}>
-                    {on && <Check size={12} className="mr-1 inline" />}{ev.name}
+                  <button key={ev.id} disabled={!canEdit} onClick={() => cycleEvent(g.id, ev.id)} aria-label={`${ev.name}: ${STATE_LABEL[st]}. Tap to change.`}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-medium ${style}`}>
+                    {st === "invited" && <Check size={12} className="mr-1 inline" />}{st === "skip" && <X size={12} className="mr-1 inline" />}{ev.name}
                   </button>
                 );
               })}
@@ -302,8 +355,15 @@ export default function GuestsPage() {
                   </td>
                   {events.map((ev) => (
                     <td key={ev.id} className="p-2 text-center">
-                      <input aria-label={`${g.name} invited to ${ev.name}`} type="checkbox" disabled={!canEdit} checked={invited.get(g.id)?.has(ev.id) ?? false}
-                        onChange={(e) => toggleEvent(g.id, ev.id, e.target.checked)} />
+                      {(() => {
+                        const st = stateOf(g.id, ev.id);
+                        return (
+                          <button type="button" disabled={!canEdit} onClick={() => cycleEvent(g.id, ev.id)} aria-label={`${g.name}, ${ev.name}: ${STATE_LABEL[st]}. Tap to change.`} title={STATE_LABEL[st]}
+                            className={`h-9 w-9 rounded-full border text-sm ${st === "invited" ? "border-rose-600 bg-rose-600 text-white" : st === "skip" ? "bg-gray-100 text-gray-400" : "border-dashed text-gray-400"}`}>
+                            {st === "invited" ? "✓" : st === "skip" ? "✕" : "?"}
+                          </button>
+                        );
+                      })()}
                     </td>
                   ))}
                   {canEdit && (
@@ -336,7 +396,8 @@ export default function GuestsPage() {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <button type="button" disabled={!pick.size} onClick={bulkInvite} className="min-h-10 rounded-lg bg-rose-600 px-3 text-white disabled:opacity-40">Invite to chosen</button>
-            <button type="button" disabled={!pick.size} onClick={bulkUninvite} className="min-h-10 rounded-lg border px-3 disabled:opacity-40">Remove from chosen</button>
+            <button type="button" disabled={!pick.size} onClick={bulkSkip} className="min-h-10 rounded-lg border px-3 disabled:opacity-40">Not inviting</button>
+            <button type="button" disabled={!pick.size} onClick={bulkUndecided} className="min-h-10 rounded-lg border px-3 disabled:opacity-40">Back to undecided</button>
             <select aria-label="Set side for selected guests" value="" onChange={(e) => e.target.value && setSelectedSide(e.target.value as Side)} className="min-h-10 rounded-lg border p-2">
               <option value="">Set side…</option>
               {Object.entries(sideLabel).map(([k, v]) => <option key={k} value={k}>{v} side</option>)}

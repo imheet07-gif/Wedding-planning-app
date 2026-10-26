@@ -32,6 +32,7 @@ export type Guest = {
   call_note: string | null;
 };
 
+export type EventSkip = { guest_id: string; event_id: string }; // decided not to invite
 export type Invitation = { guest_id: string; event_id: string; rsvp: Rsvp; sent_at: string | null };
 export type Profile = { id: string; email: string; role: Role };
 
