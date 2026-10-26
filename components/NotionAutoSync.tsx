@@ -10,7 +10,7 @@ const EVERY_MS = 10 * 60 * 1000;
 const LAST_KEY = "notion-auto-last";
 
 // When "keep updated automatically" is on, an editor opening (or coming back to) the app brings the guest list up to date
-// with Notion, at most every 10 minutes. It only adds and updates, and it stops and asks for a look if a sync would
+// with Notion, at most every 10 minutes. It never deletes guests, and it stops and asks for a look if a sync would
 // change a large share of the list (for example after a mass rename in Notion).
 export function NotionAutoSync() {
   const { settings, events, canEdit, ready, refresh } = useWedding();

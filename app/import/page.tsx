@@ -221,7 +221,7 @@ export default function ImportPage() {
         <h2 className="font-semibold">Link a Notion database</h2>
         <p className="text-gray-600">
           Uses your Notion guest list: the title is the guest or family, plus <b>Guest Count</b>, <b>Contact</b>, <b>Group</b> and <b>Event</b>. Same as the sheet: you see a preview first, the app only reads Notion, and nobody is deleted.
-          Because events are often left unmarked in Notion, a sync only <i>adds</i> invitations. Use the tick boxes on the Guests page to invite many at once.
+          For a guest with events tagged in Notion, the app copies exactly those: add a tag to invite them, remove one to put them back to undecided (unless they already replied or were sent an invite). A guest with no events tagged in Notion is left as set in the app, so use the tick boxes on the Guests page to invite many at once.
         </p>
         {canEdit ? (
           <>
@@ -244,7 +244,7 @@ export default function ImportPage() {
                 <span>
                   <span className="font-medium">Keep the guest list updated automatically</span>
                   <span className="block text-xs text-gray-500">
-                    Whenever an editor opens the app, at most every 10 minutes, it adds new guests from Notion and updates people, contact and group. Nothing is deleted.
+                    Whenever an editor opens the app, at most every 10 minutes, it adds new guests from Notion and updates people, contact, group and events. Nobody is deleted.
                     Notion decides who is on the list, so to remove or rename someone, do it in Notion (a guest deleted only in the app comes back). It does not run while nobody has the app open. If a sync would change a large part of the list, it pauses and waits for you.
                   </span>
                 </span>

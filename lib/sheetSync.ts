@@ -27,12 +27,13 @@ export function planSync(data: Cell[][], events: { id: string; name: string }[],
   return planFromRows(rows, columns, problems, events, guests, invitations, { removeUnticked: true });
 }
 
-// `columns` are the events the source actually has a column for. With removeUnticked off (lists whose events are
-// often left unmarked), a sync only ever adds invitations.
+// `columns` are the events the source actually has a column for. removeUnticked decides whether an event missing from
+// the source takes the invitation away (back to undecided): true for everyone, "tagged" only for guests the source lists
+// at least one event for (lists whose events are often left unmarked), false never.
 export function planFromRows(
   rows: ParsedRow[], columns: string[], problems: string[],
   events: { id: string; name: string }[], guests: Guest[], invitations: Invitation[],
-  opts: { removeUnticked: boolean },
+  opts: { removeUnticked: boolean | "tagged" },
 ): SyncPlan {
   const byKey = new Map<string, Guest>();
   for (const g of guests) if (!byKey.has(guestKey(g.name, g.phone))) byKey.set(guestKey(g.name, g.phone), g);
@@ -65,10 +66,11 @@ export function planFromRows(
     const want = new Set(r.eventIds);
     const addEvents = r.eventIds.filter((id) => !have.has(id));
     const dropped = [...have.keys()].filter((id) => columns.includes(id) && !want.has(id));
-    const removeEvents = !opts.removeUnticked ? [] : dropped.filter((id) => have.get(id)!.rsvp === "pending" && !have.get(id)!.sent_at);
-    const keptEvents = !opts.removeUnticked ? [] : dropped.filter((id) => !removeEvents.includes(id));
+    const mayRemove = opts.removeUnticked === true || (opts.removeUnticked === "tagged" && r.eventIds.length > 0);
+    const removeEvents = !mayRemove ? [] : dropped.filter((id) => have.get(id)!.rsvp === "pending" && !have.get(id)!.sent_at);
+    const keptEvents = !mayRemove ? [] : dropped.filter((id) => !removeEvents.includes(id));
     for (const id of addEvents) changes.push(`invited to ${evName.get(id)}`);
-    for (const id of removeEvents) changes.push(`removed from ${evName.get(id)}`);
+    for (const id of removeEvents) changes.push(`no longer invited to ${evName.get(id)} (back to undecided)`);
 
     if (changes.length) plan.updates.push({ guest: g, patch, addEvents, removeEvents, keptEvents, changes });
     else plan.unchanged++;
