@@ -103,6 +103,40 @@ function EventCard({ ev, open, onToggle }: { ev: WeddingEvent; open: boolean; on
   );
 }
 
+function AddEvent({ onAdded }: { onAdded: (id: string) => void }) {
+  const { events, canEdit, refresh } = useWedding();
+  const notify = useToast();
+  const [name, setName] = useState("");
+  const [busy, setBusy] = useState(false);
+  if (!canEdit) return null;
+
+  async function add(e: React.FormEvent) {
+    e.preventDefault();
+    const n = name.trim();
+    if (!n) return;
+    if (events.some((ev) => ev.name.toLowerCase() === n.toLowerCase())) return notify(`There is already an event called ${n}.`, "error");
+    setBusy(true);
+    const sort_order = Math.max(0, ...events.map((ev) => ev.sort_order)) + 1;
+    const { data, error } = await supabase().from("events").insert({ name: n, sort_order }).select("id").single();
+    setBusy(false);
+    notify(error ? error.message : `${n} added. Set its date and venue below.`, error ? "error" : "ok");
+    if (error) return;
+    setName("");
+    await refresh();
+    onAdded(data.id);
+  }
+
+  return (
+    <form onSubmit={add} className="card flex flex-wrap items-end gap-2 p-4">
+      <label className="min-w-0 flex-1 text-sm">
+        <span className="text-gray-500">Add an event (e.g. Poojan)</span>
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Event name" className="mt-1 w-full rounded-lg border p-2.5" />
+      </label>
+      <button disabled={busy || !name.trim()} className="min-h-11 rounded-lg bg-rose-600 px-4 text-white disabled:opacity-40">Add event</button>
+    </form>
+  );
+}
+
 function Events() {
   const { events } = useWedding();
   const initial = useSearchParams().get("id");
@@ -112,6 +146,7 @@ function Events() {
       {events.map((ev) => (
         <EventCard key={ev.id} ev={ev} open={openId === ev.id} onToggle={() => setOpenId(openId === ev.id ? null : ev.id)} />
       ))}
+      <AddEvent onAdded={setOpenId} />
     </div>
   );
 }
