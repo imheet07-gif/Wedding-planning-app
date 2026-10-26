@@ -11,7 +11,7 @@ const LAST_KEY = "notion-auto-last";
 
 // When "keep updated automatically" is on, an editor opening (or coming back to) the app brings the guest list up to date
 // with Notion, at most every 10 minutes. It never deletes guests, and it stops and asks for a look if a sync would
-// change a large share of the list (for example after a mass rename in Notion).
+// change a large share of the list (for example after a mass rename in Notion) or undo more than a few invitations.
 export function NotionAutoSync() {
   const { settings, events, canEdit, ready, refresh } = useWedding();
   const notify = useToast();
@@ -49,7 +49,10 @@ export function NotionAutoSync() {
         const guests = g.data as Guest[];
         const plan = await fetchNotionPlan(st.notion_db_url, (st.notion_side as "groom" | "bride" | "both" | undefined) ?? "groom", ev, guests, i.data as Invitation[]);
         const changes = plan.adds.length + plan.updates.length;
-        if (changes > 20 && changes > guests.length / 2) {
+        const undone = plan.updates.reduce((n, u) => n + u.removeEvents.length, 0);
+        if (undone > 5) {
+          await saveSetting("notion_last_error", `Automatic sync paused: it would put ${undone} invitations back to undecided because they are not tagged in Notion. Tag them in Notion, or open Import and apply it yourself.`);
+        } else if (changes > 20 && changes > guests.length / 2) {
           await saveSetting("notion_last_error", `Automatic sync paused: it would change ${changes} guests at once. Open Import, check Notion, and apply it yourself.`);
         } else {
           const { added, updated } = changes ? await applySyncPlan(plan) : { added: 0, updated: 0 };

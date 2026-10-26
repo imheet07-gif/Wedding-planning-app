@@ -221,7 +221,7 @@ export default function ImportPage() {
         <h2 className="font-semibold">Link a Notion database</h2>
         <p className="text-gray-600">
           Uses your Notion guest list: the title is the guest or family, plus <b>Guest Count</b>, <b>Contact</b>, <b>Group</b> and <b>Event</b>. Same as the sheet: you see a preview first, the app only reads Notion, and nobody is deleted.
-          For a guest with events tagged in Notion, the app copies exactly those: add a tag to invite them, remove one to put them back to undecided (unless they already replied or were sent an invite). A guest with no events tagged in Notion is left as set in the app, so use the tick boxes on the Guests page to invite many at once.
+          Notion decides each guest&apos;s events: add a tag to invite them, remove one (or all) to put them back to undecided, unless they already replied or were sent an invite. A guest with no events in Notion is undecided. Invitations you add only in the app are undone by the next sync, so tag those guests in Notion too.
         </p>
         {canEdit ? (
           <>

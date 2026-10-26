@@ -48,9 +48,8 @@ export async function applySyncPlan(plan: SyncPlan) {
   return { added, updated: plan.updates.length };
 }
 
-// Notion lists are often left unmarked: a guest with events tagged in Notion gets exactly those (an event dropped in Notion
-// goes back to undecided if they have not replied or been sent an invite), while a guest with no events tagged keeps
-// whatever was set in the app.
+// Notion decides each guest's events: exactly the tagged ones are invited, and an event not tagged in Notion goes back to
+// undecided (a guest with no events at all is undecided for everything), unless they already replied or were sent an invite.
 export async function fetchNotionPlan(
   url: string, side: ParsedRow["side"],
   events: { id: string; name: string }[], guests: Guest[], invitations: Invitation[],
@@ -64,7 +63,7 @@ export async function fetchNotionPlan(
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(body.error ?? "Could not read Notion.");
   const { rows, columns, problems } = rowsFromNotion(body as NotionPayload, events, side);
-  const plan = planFromRows(rows.filter((r) => r.status === "ok"), columns, problems, events, guests, invitations, { removeUnticked: "tagged" });
+  const plan = planFromRows(rows.filter((r) => r.status === "ok"), columns, problems, events, guests, invitations, { removeUnticked: true });
   plan.skipped = rows.filter((r) => r.status !== "ok");
   return plan;
 }
