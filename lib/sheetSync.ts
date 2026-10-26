@@ -24,6 +24,16 @@ export type SyncPlan = {
 
 export function planSync(data: Cell[][], events: { id: string; name: string }[], guests: Guest[], invitations: Invitation[]): SyncPlan {
   const { rows, problems, columns } = parseGuestRows(data, events, []);
+  return planFromRows(rows, columns, problems, events, guests, invitations, { removeUnticked: true });
+}
+
+// `columns` are the events the source actually has a column for. With removeUnticked off (lists whose events are
+// often left unmarked), a sync only ever adds invitations.
+export function planFromRows(
+  rows: ParsedRow[], columns: string[], problems: string[],
+  events: { id: string; name: string }[], guests: Guest[], invitations: Invitation[],
+  opts: { removeUnticked: boolean },
+): SyncPlan {
   const byKey = new Map<string, Guest>();
   for (const g of guests) if (!byKey.has(guestKey(g.name, g.phone))) byKey.set(guestKey(g.name, g.phone), g);
   const evName = new Map(events.map((e) => [e.id, e.name]));
@@ -55,8 +65,8 @@ export function planSync(data: Cell[][], events: { id: string; name: string }[],
     const want = new Set(r.eventIds);
     const addEvents = r.eventIds.filter((id) => !have.has(id));
     const dropped = [...have.keys()].filter((id) => columns.includes(id) && !want.has(id));
-    const removeEvents = dropped.filter((id) => have.get(id)!.rsvp === "pending" && !have.get(id)!.sent_at);
-    const keptEvents = dropped.filter((id) => !removeEvents.includes(id));
+    const removeEvents = !opts.removeUnticked ? [] : dropped.filter((id) => have.get(id)!.rsvp === "pending" && !have.get(id)!.sent_at);
+    const keptEvents = !opts.removeUnticked ? [] : dropped.filter((id) => !removeEvents.includes(id));
     for (const id of addEvents) changes.push(`invited to ${evName.get(id)}`);
     for (const id of removeEvents) changes.push(`removed from ${evName.get(id)}`);
 
