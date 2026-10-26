@@ -5,10 +5,11 @@ import { supabase } from "@/lib/supabase";
 import { useWedding } from "@/components/WeddingProvider";
 import { BASE_HEADERS, parseCsv, parseGuestRows, templateRows, type Cell, type ParsedRow } from "@/lib/importGuests";
 import { planSync, type SyncPlan } from "@/lib/sheetSync";
+import { applySyncPlan, fetchNotionPlan, insertGuests, saveSetting } from "@/lib/syncApply";
 import { sheetCsvUrl } from "@/lib/sheetLink";
+import { notionDbId } from "@/lib/notionDb";
 
 const MAX_ROWS = 2000;
-const chunk = <T,>(a: T[], n = 200) => Array.from({ length: Math.ceil(a.length / n) }, (_, i) => a.slice(i * n, i * n + n));
 
 export default function ImportPage() {
   const { events, guests, invitations, settings, canEdit, refresh } = useWedding();
@@ -64,27 +65,6 @@ export default function ImportPage() {
   const importable = rows?.filter((r) => r.status === "ok" || r.status === "warning") ?? [];
   const count = (s: ParsedRow["status"]) => rows?.filter((r) => r.status === s).length ?? 0;
 
-  // Adds guests and their event invitations in batches; returns how many went in.
-  async function insertGuests(list: ParsedRow[], onDone?: (n: number) => void) {
-    const db = supabase();
-    let done = 0;
-    for (const part of chunk(list)) {
-      const { data, error } = await db
-        .from("guests")
-        .insert(part.map((r) => ({ name: r.name, side: r.side, grp: r.grp, headcount: r.headcount, phone: r.phone, diet: r.diet, notes: r.notes })))
-        .select("id");
-      if (error || !data) throw new Error(error?.message ?? "Import failed.");
-      const inv = part.flatMap((r, i) => r.eventIds.map((event_id) => ({ guest_id: data[i].id, event_id })));
-      for (const invPart of chunk(inv, 500)) {
-        const { error: e2 } = await db.from("invitations").insert(invPart);
-        if (e2) throw new Error(e2.message);
-      }
-      done += part.length;
-      onDone?.(done);
-    }
-    return done;
-  }
-
   async function doImport() {
     setBusy(true); setErr(""); setResult("");
     let done = 0;
@@ -107,10 +87,39 @@ export default function ImportPage() {
   const [sheetMsg, setSheetMsg] = useState("");
   const [sheetErr, setSheetErr] = useState("");
   const [sheetBusy, setSheetBusy] = useState(false);
+  const [planFrom, setPlanFrom] = useState<"sheet" | "notion">("sheet");
 
-  async function saveSetting(key: string, value: string) {
-    const { error } = await supabase().from("app_settings").upsert({ key, value });
-    if (error) throw new Error(error.message);
+  // ---- Notion database ----
+  const savedNotion = settings.notion_db_url ?? "";
+  const [nLink, setNLink] = useState<string | null>(null);
+  const nValue = nLink ?? savedNotion;
+  const nSide = (settings.notion_side as ParsedRow["side"] | undefined) ?? "groom";
+  const [nMsg, setNMsg] = useState("");
+  const [nErr, setNErr] = useState("");
+
+  async function saveNotionLink() {
+    setNErr(""); setNMsg(""); setPlan(null);
+    const v = nValue.trim();
+    if (v && !notionDbId(v)) return setNErr("That is not a Notion database link. Open the database, tap Share, then Copy link.");
+    try {
+      await saveSetting("notion_db_url", v);
+      await refresh();
+      setNLink(null);
+      setNMsg(v ? "Link saved." : "Link removed. Your guests stay as they are.");
+    } catch (e) {
+      setNErr((e as Error).message);
+    }
+  }
+
+  async function checkNotion() {
+    setSheetBusy(true); setNErr(""); setNMsg(""); setPlan(null);
+    try {
+      setPlan(await fetchNotionPlan(savedNotion, nSide, events, guests, invitations));
+      setPlanFrom("notion");
+    } catch (e) {
+      setNErr((e as Error).message);
+    }
+    setSheetBusy(false);
   }
 
   async function saveLink() {
@@ -140,6 +149,7 @@ export default function ImportPage() {
       if (!res.ok) throw new Error(body.error ?? "Could not read the sheet.");
       const data = parseCsv(body.csv as string) as Cell[][];
       if (data.length > MAX_ROWS + 1) throw new Error(`The sheet has more than ${MAX_ROWS} rows.`);
+      setPlanFrom("sheet");
       setPlan(planSync(data, events, guests, invitations));
     } catch (e) {
       setSheetErr((e as Error).message);
@@ -149,29 +159,14 @@ export default function ImportPage() {
 
   async function applySync() {
     if (!plan) return;
-    setSheetBusy(true); setSheetErr(""); setSheetMsg("");
-    const db = supabase();
+    setSheetBusy(true); setSheetErr(""); setNErr(""); setSheetMsg(""); setNMsg("");
     try {
-      const added = await insertGuests(plan.adds);
-      for (const u of plan.updates) {
-        if (Object.keys(u.patch).length) {
-          const { error } = await db.from("guests").update(u.patch).eq("id", u.guest.id);
-          if (error) throw new Error(error.message);
-        }
-        if (u.addEvents.length) {
-          const { error } = await db.from("invitations").insert(u.addEvents.map((event_id) => ({ guest_id: u.guest.id, event_id })));
-          if (error) throw new Error(error.message);
-        }
-        for (const event_id of u.removeEvents) {
-          const { error } = await db.from("invitations").delete().match({ guest_id: u.guest.id, event_id });
-          if (error) throw new Error(error.message);
-        }
-      }
-      await saveSetting("guest_sheet_synced_at", new Date().toISOString());
-      setSheetMsg(`Synced: ${added} added, ${plan.updates.length} updated.`);
+      const { added, updated } = await applySyncPlan(plan);
+      await saveSetting(planFrom === "notion" ? "notion_synced_at" : "guest_sheet_synced_at", new Date().toISOString());
+      (planFrom === "notion" ? setNMsg : setSheetMsg)(`Synced: ${added} added, ${updated} updated.`);
       setPlan(null);
     } catch (e) {
-      setSheetErr(`${(e as Error).message} Some changes may already be applied; check the sheet again.`);
+      (planFrom === "notion" ? setNErr : setSheetErr)(`${(e as Error).message} Some changes may already be applied; check again.`);
     }
     await refresh();
     setSheetBusy(false);
@@ -220,8 +215,67 @@ export default function ImportPage() {
         {syncedAt && <p className="text-xs text-gray-500">Last synced {syncedAt}</p>}
         {sheetErr && <p role="alert" className="text-red-600">{sheetErr}</p>}
         {sheetMsg && <p className="text-green-700">{sheetMsg}</p>}
+      </section>
+
+      <section className="space-y-2 card p-4 text-sm">
+        <h2 className="font-semibold">Link a Notion database</h2>
+        <p className="text-gray-600">
+          Uses your Notion guest list: the title is the guest or family, plus <b>Guest Count</b>, <b>Contact</b>, <b>Group</b> and <b>Event</b>. Same as the sheet: you see a preview first, the app only reads Notion, and nobody is deleted.
+          Notion only controls the guests that are listed in Notion. For those guests, add a tag to invite them and remove one (or all) to put them back to undecided, unless they already replied or were sent an invite; a Notion guest with no events is undecided. Guests who are not in Notion (added in the app or from a sheet) are never touched, so invite them from the Guests page as usual.
+        </p>
+        {canEdit ? (
+          <>
+            <label className="block space-y-1">
+              <span className="font-medium">Database link</span>
+              <input type="url" inputMode="url" value={nValue} onChange={(e) => setNLink(e.target.value)} placeholder="https://www.notion.so/…"
+                className="w-full rounded-lg border p-2.5" />
+            </label>
+            <label className="block space-y-1">
+              <span className="font-medium">New guests from this list are on the</span>
+              <select value={nSide} onChange={(e) => saveSetting("notion_side", e.target.value).then(refresh)} className="w-full rounded-lg border p-2.5">
+                <option value="groom">Groom&apos;s side</option>
+                <option value="bride">Bride&apos;s side</option>
+                <option value="both">Both sides</option>
+              </select>
+            </label>
+            {savedNotion && (
+              <label className="flex items-start gap-2">
+                <input type="checkbox" className="mt-1" checked={settings.notion_auto === "1"} onChange={(e) => saveSetting("notion_auto", e.target.checked ? "1" : "0").then(refresh)} />
+                <span>
+                  <span className="font-medium">Keep the guest list updated automatically</span>
+                  <span className="block text-xs text-gray-500">
+                    Whenever an editor opens the app, at most every 10 minutes, it adds new guests from Notion and updates people, contact, group and events. Nobody is deleted.
+                    Notion decides who is on the list, so to remove or rename someone, do it in Notion (a guest deleted only in the app comes back). It does not run while nobody has the app open. If a sync would change a large part of the list, it pauses and waits for you.
+                  </span>
+                </span>
+              </label>
+            )}
+            <div className="flex flex-wrap gap-2">
+              <button onClick={saveNotionLink} disabled={nValue.trim() === savedNotion} className="rounded-lg border px-3 py-2 disabled:opacity-40">{nValue.trim() ? "Save link" : "Remove link"}</button>
+              {savedNotion && <button onClick={checkNotion} disabled={sheetBusy || nValue.trim() !== savedNotion} className="rounded-lg bg-rose-600 px-3 py-2 text-white disabled:opacity-40">{sheetBusy ? "Checking…" : "Check Notion"}</button>}
+            </div>
+            <details className="text-gray-600">
+              <summary className="min-h-8 cursor-pointer py-1 text-rose-700 underline">One-time setup</summary>
+              <ol className="mt-1 list-decimal space-y-1 pl-5">
+                <li>At notion.so/profile/integrations create an <b>internal integration</b> and copy its secret.</li>
+                <li>Open the guest database, tap <b>…</b> then <b>Connections</b>, and add that integration.</li>
+                <li>In Vercel, open the project, Settings, Environment Variables, add <code>NOTION_TOKEN</code> with the secret, then redeploy. Never paste the secret into the app or into chat.</li>
+              </ol>
+            </details>
+          </>
+        ) : (
+          <p className="text-gray-500">Only editors can link Notion.</p>
+        )}
+        {settings.notion_synced_at && <p className="text-xs text-gray-500">Last synced {new Date(settings.notion_synced_at).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</p>}
+        {settings.notion_last_result && settings.notion_auto === "1" && <p className="text-xs text-gray-500">Last automatic change: {settings.notion_last_result}</p>}
+        {settings.notion_last_error && settings.notion_auto === "1" && <p role="alert" className="text-amber-700">{settings.notion_last_error}</p>}
+        {nErr && <p role="alert" className="text-red-600">{nErr}</p>}
+        {nMsg && <p className="text-green-700">{nMsg}</p>}
+      </section>
+
         {plan && (
-          <div className="space-y-2 border-t pt-2">
+          <section className="space-y-2 card p-4 text-sm">
+            <p className="text-xs text-gray-500">From {planFrom === "notion" ? "Notion" : "the Google Sheet"}</p>
             <p className="font-medium">
               {changed ? `${plan.adds.length} new, ${plan.updates.length} to update` : "Everything is already up to date"}
               {` · ${plan.unchanged} unchanged`}
@@ -244,7 +298,7 @@ export default function ImportPage() {
               </div>
             )}
             {plan.missing.length > 0 && (
-              <p className="text-gray-500">In the app but not in the sheet (left as they are): {plan.missing.map((g) => g.name).join(", ")}. If you renamed someone in the sheet they show up here and as a new guest.</p>
+              <p className="text-gray-500">In the app but not in {planFrom === "notion" ? "Notion" : "the sheet"} (left as they are): {plan.missing.map((g) => g.name).join(", ")}. If you renamed someone there they show up here and as a new guest.</p>
             )}
             {plan.skipped.length > 0 && (
               <details className="text-gray-500"><summary className="cursor-pointer">Skipped rows</summary>
@@ -252,9 +306,8 @@ export default function ImportPage() {
               </details>
             )}
             {changed > 0 && <button onClick={applySync} disabled={sheetBusy} className="rounded-lg bg-rose-600 px-4 py-2 text-white disabled:opacity-40">{sheetBusy ? "Applying…" : `Apply ${changed} changes`}</button>}
-          </div>
+          </section>
         )}
-      </section>
 
       <section className="space-y-2 card p-4 text-sm">
         <p className="font-medium">Or import a file once: 1. Download the template and fill it in</p>

@@ -32,7 +32,7 @@ function Tile({ href, icon: Icon, label, value, sub, pct, delay }: {
 }
 
 export default function Dashboard() {
-  const { events, guests, invitations, vendors, payments, budget, expenses, tasks, settings, canEdit, refresh } = useWedding();
+  const { events, guests, invitations, skips, vendors, payments, budget, expenses, tasks, settings, canEdit, refresh } = useWedding();
   const notify = useToast();
 
   const headcount = new Map(guests.map((g) => [g.id, g.headcount]));
@@ -52,8 +52,10 @@ export default function Dashboard() {
   const rows = events.map((ev) => {
     const inv = invitations.filter((i) => i.event_id === ev.id);
     const sum = (list: typeof inv) => list.reduce((n, i) => n + (headcount.get(i.guest_id) ?? 0), 0);
+    const decided = new Set([...inv.map((i) => i.guest_id), ...skips.filter((k) => k.event_id === ev.id).map((k) => k.guest_id)]);
     return {
       ev,
+      undecided: guests.filter((g) => !decided.has(g.id)).length,
       invited: sum(inv),
       yes: sum(inv.filter((i) => i.rsvp === "yes")),
       no: sum(inv.filter((i) => i.rsvp === "no")),
@@ -167,7 +169,7 @@ export default function Dashboard() {
       <section className="space-y-3">
         <h2 className="flex items-center gap-2 font-display text-xl"><CalendarHeart size={20} className="text-rose-500" />Events</h2>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {rows.map(({ ev, invited, yes, no, pending }, i) => {
+          {rows.map(({ ev, invited, yes, no, pending, undecided }, i) => {
             const d = ev.event_date ? daysUntil(ev.event_date) : null;
             return (
               <div key={ev.id} style={{ animationDelay: `${300 + i * 50}ms` }} className="card card-hover animate-fade-up relative space-y-3 p-4">
@@ -191,6 +193,13 @@ export default function Dashboard() {
                   { pct: invited ? (no / invited) * 100 : 0, className: "bg-rose-400", label: `${no} no` },
                   { pct: invited ? (pending / invited) * 100 : 0, className: "bg-gold-400", label: `${pending} pending` },
                 ]} />
+                {undecided > 0 && (
+                  <p className="relative z-10 text-xs">
+                    <Link href={`/guests?event=${ev.id}&status=undecided`} className="inline-flex min-h-10 items-center text-amber-700 underline">
+                      {undecided} {undecided === 1 ? "guest" : "guests"} undecided
+                    </Link>
+                  </p>
+                )}
                 <p className="flex gap-3 text-xs text-gray-600">
                   <span><span className="mr-1 inline-block h-2 w-2 rounded-full bg-green-500" />{yes} yes</span>
                   <span><span className="mr-1 inline-block h-2 w-2 rounded-full bg-rose-400" />{no} no</span>
