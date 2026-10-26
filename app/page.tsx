@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { ArrowRight, CalendarHeart, ListChecks, MapPin, Send, UsersRound, Wallet, type LucideIcon } from "lucide-react";
+import { ArrowRight, CalendarHeart, HelpCircle, ListChecks, MapPin, Send, UsersRound, Wallet, type LucideIcon } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useWedding } from "@/components/WeddingProvider";
 import { useToast } from "@/components/Toast";
@@ -52,16 +52,22 @@ export default function Dashboard() {
   const rows = events.map((ev) => {
     const inv = invitations.filter((i) => i.event_id === ev.id);
     const sum = (list: typeof inv) => list.reduce((n, i) => n + (headcount.get(i.guest_id) ?? 0), 0);
-    const decided = new Set([...inv.map((i) => i.guest_id), ...skips.filter((k) => k.event_id === ev.id).map((k) => k.guest_id)]);
     return {
       ev,
-      undecided: guests.filter((g) => !decided.has(g.id)).length,
       invited: sum(inv),
       yes: sum(inv.filter((i) => i.rsvp === "yes")),
       no: sum(inv.filter((i) => i.rsvp === "no")),
       pending: sum(inv.filter((i) => i.rsvp === "pending")),
     };
   });
+
+  // Guests on the list who still have no yes/no decision for an event. Kept apart from the event cards, which only count invited people.
+  const decidedKeys = new Set([...invitations.map((i) => `${i.guest_id}|${i.event_id}`), ...skips.map((k) => `${k.guest_id}|${k.event_id}`)]);
+  const undecidedFor = (guestId: string) => events.filter((ev) => !decidedKeys.has(`${guestId}|${ev.id}`));
+  const someUndecided = guests.filter((g) => undecidedFor(g.id).length > 0);
+  const noneDecided = events.length ? guests.filter((g) => undecidedFor(g.id).length === events.length) : [];
+  const headcountOf = (list: typeof guests) => list.reduce((n, g) => n + g.headcount, 0);
+  const undecidedByEvent = events.map((ev) => ({ ev, n: guests.filter((g) => !decidedKeys.has(`${g.id}|${ev.id}`)).length })).filter((x) => x.n > 0);
 
   const vendorName = new Map(vendors.map((v) => [v.id, v.name]));
   const upcoming = payments
@@ -166,10 +172,37 @@ export default function Dashboard() {
           sub={tasks.length ? `${tasks.length - doneTasks} still open` : "No tasks yet"} pct={tasks.length ? (doneTasks / tasks.length) * 100 : 0} />
       </div>
 
+      {someUndecided.length > 0 && (
+        <section className="card space-y-3 p-4">
+          <h2 className="flex items-center gap-2 font-display text-xl"><HelpCircle size={20} className="text-gold-600" />Undecided guests</h2>
+          <p className="text-sm text-gray-600">
+            Guests on your list you have not yet decided on (invite or not) for one or more events. They are not counted in the event cards below, which only count invited people.
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Link href="/guests?event=__none" className="card card-hover block p-3">
+              <p className="font-display text-3xl">{noneDecided.length}<span className="ml-1 font-sans text-sm text-gray-500">{noneDecided.length === 1 ? "guest" : "guests"}</span></p>
+              <p className="text-sm text-gray-600">not decided for any event yet · {headcountOf(noneDecided)} people</p>
+            </Link>
+            <Link href="/guests?event=__undecided" className="card card-hover block p-3">
+              <p className="font-display text-3xl">{someUndecided.length}<span className="ml-1 font-sans text-sm text-gray-500">{someUndecided.length === 1 ? "guest" : "guests"}</span></p>
+              <p className="text-sm text-gray-600">undecided for at least one event · {headcountOf(someUndecided)} people</p>
+            </Link>
+          </div>
+          <p className="text-xs text-gray-500">Undecided for a particular event:</p>
+          <div className="flex flex-wrap gap-2">
+            {undecidedByEvent.map(({ ev, n }) => (
+              <Link key={ev.id} href={`/guests?event=${ev.id}&status=undecided`} className="inline-flex min-h-10 items-center rounded-full border bg-white px-3 text-sm text-amber-700">
+                {ev.name} · {n}
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
       <section className="space-y-3">
         <h2 className="flex items-center gap-2 font-display text-xl"><CalendarHeart size={20} className="text-rose-500" />Events</h2>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {rows.map(({ ev, invited, yes, no, pending, undecided }, i) => {
+          {rows.map(({ ev, invited, yes, no, pending }, i) => {
             const d = ev.event_date ? daysUntil(ev.event_date) : null;
             return (
               <div key={ev.id} style={{ animationDelay: `${300 + i * 50}ms` }} className="card card-hover animate-fade-up relative space-y-3 p-4">
@@ -193,13 +226,6 @@ export default function Dashboard() {
                   { pct: invited ? (no / invited) * 100 : 0, className: "bg-rose-400", label: `${no} no` },
                   { pct: invited ? (pending / invited) * 100 : 0, className: "bg-gold-400", label: `${pending} pending` },
                 ]} />
-                {undecided > 0 && (
-                  <p className="relative z-10 text-xs">
-                    <Link href={`/guests?event=${ev.id}&status=undecided`} className="inline-flex min-h-10 items-center text-amber-700 underline">
-                      {undecided} {undecided === 1 ? "guest" : "guests"} undecided
-                    </Link>
-                  </p>
-                )}
                 <p className="flex gap-3 text-xs text-gray-600">
                   <span><span className="mr-1 inline-block h-2 w-2 rounded-full bg-green-500" />{yes} yes</span>
                   <span><span className="mr-1 inline-block h-2 w-2 rounded-full bg-rose-400" />{no} no</span>

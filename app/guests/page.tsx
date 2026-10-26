@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useWedding } from "@/components/WeddingProvider";
 import { useToast } from "@/components/Toast";
@@ -12,16 +13,17 @@ import type { Side } from "@/lib/types";
 type EventState = "invited" | "undecided" | "skip";
 const STATE_LABEL: Record<EventState, string> = { invited: "Invited", undecided: "Undecided", skip: "Not inviting" };
 const UNDECIDED_ANY = "__undecided";
+const UNDECIDED_ALL = "__none"; // undecided for every event
 
 const sideLabel: Record<Side, string> = { bride: "Bride", groom: "Groom", both: "Both" };
 
-export default function GuestsPage() {
+function Guests() {
   const { guests, events, invitations, skips, canEdit, refresh } = useWedding();
   const notify = useToast();
   const [search, setSearch] = useState("");
   const [sideFilter, setSideFilter] = useState("");
   // The dashboard links here with ?event=<id>&status=undecided.
-  const q = typeof window === "undefined" ? new URLSearchParams() : new URLSearchParams(window.location.search);
+  const q = useSearchParams();
   const [eventFilter, setEventFilter] = useState(q.get("event") ?? "");
   const [statusFilter, setStatusFilter] = useState<EventState | "all">((q.get("status") as EventState | null) ?? "invited");
   const [form, setForm] = useState({ name: "", side: "bride" as Side, grp: "", headcount: 1, phone: "", diet: "" });
@@ -47,7 +49,9 @@ export default function GuestsPage() {
       (!search || `${g.name} ${g.grp ?? ""}`.toLowerCase().includes(search.toLowerCase())) &&
       (!sideFilter || g.side === sideFilter) &&
       (!eventFilter ||
-        (eventFilter === UNDECIDED_ANY
+        (eventFilter === UNDECIDED_ALL
+          ? events.every((ev) => stateOf(g.id, ev.id) === "undecided")
+          : eventFilter === UNDECIDED_ANY
           ? events.some((ev) => stateOf(g.id, ev.id) === "undecided")
           : statusFilter === "all" || stateOf(g.id, eventFilter) === statusFilter)),
   );
@@ -214,10 +218,11 @@ export default function GuestsPage() {
           </select>
           <select aria-label="Filter by event" value={eventFilter} onChange={(e) => setEventFilter(e.target.value)} className="rounded-lg border p-2.5">
             <option value="">All events</option>
-            <option value={UNDECIDED_ANY}>Undecided for any event</option>
+            <option value={UNDECIDED_ALL}>Not decided for any event</option>
+            <option value={UNDECIDED_ANY}>Undecided for at least one event</option>
             {events.map((ev) => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
           </select>
-          {eventFilter && eventFilter !== UNDECIDED_ANY && (
+          {eventFilter && eventFilter !== UNDECIDED_ANY && eventFilter !== UNDECIDED_ALL && (
             <select aria-label="Status for this event" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as EventState | "all")} className="rounded-lg border p-2.5">
               <option value="invited">Invited</option>
               <option value="undecided">Undecided</option>
@@ -407,4 +412,8 @@ export default function GuestsPage() {
       )}
     </div>
   );
+}
+
+export default function GuestsPage() {
+  return <Suspense><Guests /></Suspense>;
 }
